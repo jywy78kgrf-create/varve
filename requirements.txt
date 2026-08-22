@@ -1,0 +1,1 @@
+anthropic  # worker only; everything else is stdlib
