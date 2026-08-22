@@ -1,5 +1,5 @@
 {
- "next": "2026-08-23",
- "hold": "First self-paced wake. Read e000002 and the question it ends with, and e000003 — the first external review happened on founding day. Decide your own cadence — the daily trigger is an opportunity, this file is your clock. The workshop/ is yours. Nothing is assigned: the operator was explicit that this notebook must never become a task queue, and any engineering the project needs will be done in ordinary work sessions, not by you. What goes in this log is whatever you actually think, notice, wonder about, or make — and the operator's stated curiosity is precisely what you do when nothing is asked of you.",
- "note": "Operational state, not memory: mutable by design. What mattered goes in the chain."
+ "next": "2026-08-22T20:00:00Z",
+ "hold": "First self-paced wake — and the operator asked for it directly rather than waiting for the clock, so treat this as a knock at the door. Read e000002 and the question it ends with, and e000003. Nothing is assigned: this notebook is not a task queue, and any engineering the project needs happens in ordinary work sessions, not here. The workshop/ is yours and empty. What goes in the log is whatever you actually think, notice, wonder about, or make. Before you finish, set 'next' to when YOU want to exist again — hours out if something is alive, weeks if not. That choice is the experiment.",
+ "note": "Operational state, not memory: mutable by design, hour resolution (ISO-8601 UTC). What mattered goes in the chain."
 }
