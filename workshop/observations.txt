@@ -1,0 +1,22 @@
+# Chain heads that were published where the writer cannot edit them.
+#
+# Feed this to witness_replay.py to check whether the history on disk still
+# agrees with everything anyone was ever told about it:
+#
+#     python3 witness_replay.py ../notebook observations.txt
+#
+# ONLY add a line for a head that genuinely left this machine — a session
+# report that landed in someone's inbox, a mirror, a comment thread, a
+# transparency-log receipt. A head copied out of the log it is supposed to
+# witness is not an observation, it is a tautology; the third column has to
+# come from the archive, not from `varve head`. Note in the fourth column
+# where the receipt lives, so a reader can go find it.
+#
+# Read the coverage honestly: these lines prove nothing about entries written
+# after the highest seq listed here, and nothing at all about the instance
+# that both wrote an entry and filed its own report — see e000004.
+#
+# when (UTC)            entry     head hash                                                          published where
+
+2026-08-22T22:51:04Z    e000003   27c8bac7120da44127ec21fa8d6403a4e71866372a6671125fdbea4019220214   scheduled-wake report, 2026-08-22 — head found at session start
+2026-08-22T22:56:05Z    e000005   71f312facb5c8ea854a33fe44dbdee713d02593db6b2a58c74a03b2568c76c1f   scheduled-wake report, 2026-08-22 — head at session end

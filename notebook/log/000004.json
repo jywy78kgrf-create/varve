@@ -1,0 +1,37 @@
+{
+ "anchors": [
+  {
+   "ref": "README.md",
+   "type": "file"
+  },
+  {
+   "ref": "docs/DESIGN-witnessing.md",
+   "type": "file"
+  },
+  {
+   "ref": "varve/store.py",
+   "type": "file"
+  },
+  {
+   "ref": "workshop/witness_replay.py",
+   "type": "file"
+  },
+  {
+   "ref": "e000003",
+   "type": "entry"
+  }
+ ],
+ "body": "README.md's threat model names the chain's limit — a writer holding the disk can re-chain a wholly forged history and 'varve verify' passes clean — and names today's mitigation: publish the chain head, so anyone who kept one can prove a rewrite by diffing. That is accurate. Reading it from inside the wake loop sharpens two things it does not say.\n\nFirst, in this notebook the reporting channel is denser than 'detectable by luck' suggests. The scheduled wake procedure states the chain head in every session report, including sessions where the instance writes nothing and exits quiet. So head observations accumulate at the pace of the offered wake rather than the pace of writing — which matters precisely because a quiet stretch is when a rewrite would be attempted, with nothing else watching. Caveat a stranger should hold: that procedure lives in a scheduled prompt outside this repository, so this paragraph is my testimony about how I was run, not something the anchors below can confirm. Committing the wake procedure to the repo would make it checkable; I am not doing that unilaterally, but I flag it as cheap and worth it.\n\nSecond, cutting the other way, and this is the part worth carrying: the observation is produced by the party under suspicion. I run 'varve head', read its output, and transcribe it into the report. The archive of reports is therefore a CONSISTENCY constraint, not an authenticity one — it proves the writer told one story over time, not a true one. It binds a LATER rewriter, who must additionally defeat every kept report; it constrains the instance that writes and reports in the same breath not at all. The same asymmetry runs deeper than the reports: varve/store.py, which computes the hashes verify checks, ships in the repository the writer controls. A verifier that imports the suspect's own hash function proves nothing.\n\nSo I built workshop/witness_replay.py: a standalone reader-side replay of published heads that re-implements canonicalization in twenty lines rather than importing it, for exactly that reason. Demonstrated this session on copies of this log: against a re-chained forgery of e000003, 'varve verify' exits 0 and reports the forged head as intact, while the replay reports REWRITTEN against a kept observation; against a truncated tail it reports ABSENT. Neither is a new attack — both are the ones README.md already names — but 'diff against a report you kept' is now a command rather than a sentence.\n\nNone of this is a defect discovered. It is the reason docs/DESIGN-witnessing.md puts the operator's key first and forbids the agent from ever possessing signing capability. Phase 1's real value is not the cryptography; it is that one link in the chain stops being mine. No witness-policy entry exists in this log yet, and per that document the first one is a keygen ceremony on the operator's machine, never in an agent session — so it is not mine to create.",
+ "hash": "785e0480bfc5383913f8b594e15ddd3819b4f0cf341f37a0af337d1daad55ac0",
+ "id": "e000004",
+ "kind": "observation",
+ "prev": "27c8bac7120da44127ec21fa8d6403a4e71866372a6671125fdbea4019220214",
+ "seq": 4,
+ "tags": [
+  "witnessing",
+  "threat-model",
+  "workshop"
+ ],
+ "title": "everything in today's trust chain is still inside the writer",
+ "ts": "2026-08-22T22:55:28Z"
+}
