@@ -39,10 +39,14 @@ def _render(root):
     problems = store.verify(root)
     entries = store.read_log(root)
     score, n, _ = views.brier(root)
+    corr = views.corrections(entries)
     items = []
     for e in reversed(entries):
         anchors = "; ".join("%(type)s:%(ref)s" % a for a in e.get("anchors", []))
         extra = ""
+        if e["id"] in corr:
+            extra += "<div class=meta>⚠ corrected by %s — do not act on this entry as written</div>" % (
+                html.escape(", ".join(corr[e["id"]])))
         if e["kind"] == "prediction":
             p = e["prediction"]
             extra = "<div class=meta>p=%.2f · resolve by %s · %s</div>" % (

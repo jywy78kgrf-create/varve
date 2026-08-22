@@ -16,7 +16,10 @@ from datetime import datetime, timezone
 from . import validate
 
 LOG_DIR = "log"
-_SEQ_RE = re.compile(r"^(\d{6})\.json$")
+# 6+ digits: %06d widens past 999999 on its own, but a fixed {6} regex would
+# silently DROP entry one million from read_log — a truncation bug wearing a
+# filename convention as a disguise (first external review, 2026-08-22).
+_SEQ_RE = re.compile(r"^(\d{6,})\.json$")
 
 
 def _log_dir(root):
@@ -46,11 +49,15 @@ def read_log(root):
     d = _log_dir(root)
     if not os.path.isdir(d):
         raise FileNotFoundError("no varve log at %s (run: varve init)" % root)
-    entries = []
-    for name in sorted(os.listdir(d)):
+    found = []
+    for name in os.listdir(d):
         m = _SEQ_RE.match(name)
-        if not m:
-            continue
+        if m:
+            found.append((int(m.group(1)), name))
+    entries = []
+    # numeric sort, not lexicographic: "1000000.json" sorts before "999999.json"
+    # as a string, which would shuffle the chain right when the log gets long
+    for _, name in sorted(found):
         with open(os.path.join(d, name), "r", encoding="utf-8") as f:
             entries.append(json.load(f))
     return entries
@@ -126,8 +133,25 @@ def _write(root, entry):
     os.replace(tmp, path)
 
 
-def verify(root):
-    """Walk the chain; return a list of problems (empty = intact)."""
+def head(root):
+    """The chain head: (seq, hash) of the last entry. This is the value to
+    witness EXTERNALLY (a session report, a mirror, a transparency log):
+    the chain proves internal order, but only a remembered head proves the
+    log wasn't truncated or wholesale re-chained by whoever holds the disk."""
+    entries = read_log(root)
+    if not entries:
+        raise ValueError("log is empty")
+    return entries[-1]["seq"], entries[-1]["hash"]
+
+
+def verify(root, expect_head=None):
+    """Walk the chain; return a list of problems (empty = intact).
+
+    Honest scope: this detects any PARTIAL tamper — an edited entry, a
+    re-hashed edit, a gap, a reordering. It cannot detect tail truncation
+    or a full re-chain by the disk's owner; for those, pass expect_head
+    (a previously witnessed chain-head hash) or compare `head()` against
+    a record the writer doesn't control."""
     entries = read_log(root)
     problems = []
     if not entries:
@@ -146,4 +170,9 @@ def verify(root):
         if prev_ts and e.get("ts", "") < prev_ts:
             problems.append("%s: timestamp earlier than predecessor" % tag)
         prev_hash, prev_seq, prev_ts = e.get("hash", ""), e["seq"], e.get("ts", "")
+    if expect_head and entries and entries[-1].get("hash") != expect_head:
+        problems.append(
+            "chain head %s… does not match the witnessed head %s… — "
+            "truncated tail or forked history" % (entries[-1].get("hash", "")[:12], expect_head[:12])
+        )
     return problems

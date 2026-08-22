@@ -7,6 +7,8 @@ label. That trade keeps the gate honest — it enforces what it can actually
 verify, instead of pretending to detect claims by regex.
 """
 
+import re
+
 ANCHOR_TYPES = {"url", "file", "query", "sha256", "entry"}
 
 # kinds that assert something about the world -> anchors required
@@ -39,6 +41,8 @@ def check(entry, existing):
     if not _nonempty_str(entry.get("body")):
         problems.append("body is required — an entry must be usable by a reader with no memory of its author")
 
+    ids = {e["id"] for e in existing}
+
     anchors = entry.get("anchors") or []
     if not isinstance(anchors, list):
         problems.append("anchors must be a list")
@@ -47,13 +51,23 @@ def check(entry, existing):
         if not (isinstance(a, dict) and a.get("type") in ANCHOR_TYPES and _nonempty_str(a.get("ref"))):
             problems.append("each anchor needs a type (%s) and a ref" % "/".join(sorted(ANCHOR_TYPES)))
             break
+        # syntactic lint: an anchor that can't possibly resolve is not provenance,
+        # it's decoration — reject it at the gate rather than discover it later
+        t, ref = a["type"], a["ref"].strip()
+        if t == "url" and not (ref.startswith("http://") or ref.startswith("https://")):
+            problems.append("url anchor must start with http(s)://: %r" % ref)
+        elif t == "sha256" and not re.fullmatch(r"[0-9a-f]{64}", ref):
+            problems.append("sha256 anchor must be 64 lowercase hex chars: %r" % ref)
+        elif t == "entry":
+            if not re.fullmatch(r"e\d{6,}", ref):
+                problems.append("entry anchor must look like e000123: %r" % ref)
+            elif ref not in ids:
+                problems.append("entry anchor %s does not exist in this log" % ref)
     if kind in ANCHORED_KINDS and not anchors:
         problems.append(
             "kind '%s' asserts facts and must carry at least one anchor a stranger "
             "could check — or be relabeled as a hunch/hypothesis" % kind
         )
-
-    ids = {e["id"] for e in existing}
     if kind == "errata":
         target = entry.get("corrects")
         if target not in ids:
@@ -81,11 +95,17 @@ def check(entry, existing):
         if not isinstance(entry.get("outcome"), bool):
             problems.append("resolution needs outcome: true or false")
 
-    # founded-empty: nothing may claim a time before the founding entry
+    # founded-empty + monotonic time, enforced AT THE GATE, not just in verify:
+    # rule 4's write-time half used to check only "not before the founding",
+    # which let a backdated-but-post-founding entry through until verify()
+    # noticed after the fact (first external review, 2026-08-22). The chain
+    # only moves forward, so the predecessor's timestamp is the floor.
     if existing:
-        founding_ts = existing[0].get("ts", "")
         ts = entry.get("ts", "")
-        if _nonempty_str(ts) and ts < founding_ts:
-            problems.append("timestamp predates the founding — backdating is impossible by construction")
+        if _nonempty_str(ts):
+            if ts < existing[0].get("ts", ""):
+                problems.append("timestamp predates the founding — backdating is impossible by construction")
+            elif ts < existing[-1].get("ts", ""):
+                problems.append("timestamp earlier than the previous entry — the chain only moves forward")
 
     return problems

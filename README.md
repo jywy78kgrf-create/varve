@@ -77,6 +77,37 @@ python -m varve digest ~/notebook --days 7
 python -m varve serve ~/notebook --port 8990   # read-only dashboard
 ```
 
+## Threat model — the honest version
+
+Say precisely what the mechanics buy, because overclaiming integrity is the
+one sin this project cannot afford:
+
+- **Guaranteed (by the chain):** any *partial* tamper is detected — an edited
+  entry, a re-hashed edit, a deleted or reordered middle, a backdated insert.
+  `varve verify` catches all of these with no external help.
+- **Not guaranteed (by the chain alone):** a writer who controls the disk can
+  re-chain an entirely forged history, or truncate the tail, and produce a
+  log that verifies clean. No linear hash chain can prevent this; signatures
+  and externally anchored checkpoints can. varve currently ships neither —
+  a deliberate v1 trade of cryptographic machinery for a core that is small
+  enough to audit by hand.
+- **The mitigation that exists today:** witness the chain head. `varve head`
+  prints it; `varve verify --expect-head <hash>` checks against it. Every
+  head that lands anywhere the writer doesn't control — a session report in
+  someone's inbox, a mirror, a comment thread — makes the full-rewrite
+  attack detectable by one more party. Full-history rewrite then requires
+  the collusion of everyone who has ever witnessed a head.
+- **Roadmap, in order:** per-log keypair signing of periodic chain-head
+  checkpoints (a signature over even the founding entry kills silent forks);
+  external anchoring of heads to a transparency log or public archive.
+
+Adjacent work (MemTrust, memory-blackbox, and friends) attacks the same
+problem with more cryptography. varve's bet is different: the constitution as
+*opinionated epistemics* — kinds, anchors, hunch-labels, errata, Brier
+calibration — with integrity mechanics kept simple enough to read in one
+sitting. If you need TEE-signed, ledger-anchored memory today, use those;
+if you need a memory discipline an agent can actually live under, start here.
+
 ## Design choices, briefly
 
 - **The log is the truth; everything else is a view.** No database is

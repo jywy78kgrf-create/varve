@@ -83,3 +83,24 @@ def test_deletion_detected(log):
     os.remove(os.path.join(log, "log", "000002.json"))
     problems = store.verify(log)
     assert problems  # gap + broken chain
+
+
+def test_tail_truncation_caught_by_expected_head(log):
+    """Reviewer finding: deleting the tail leaves an internally-consistent
+    log — only a witnessed head exposes it."""
+    store.append(log, _obs("first"))
+    e3 = store.append(log, _obs("second"))
+    witnessed = e3["hash"]
+    assert store.verify(log, expect_head=witnessed) == []
+    os.remove(os.path.join(log, "log", "000003.json"))
+    assert store.verify(log) == []  # the blind spot, on the record
+    problems = store.verify(log, expect_head=witnessed)
+    assert any("witnessed head" in p for p in problems)
+
+
+def test_seq_numeric_ordering():
+    """%06d widens past 999999; the regex and the sort must both keep up."""
+    assert store._SEQ_RE.match("1000000.json")
+    names = [(int(store._SEQ_RE.match(n).group(1)), n)
+             for n in ["1000000.json", "999999.json"]]
+    assert [n for _, n in sorted(names)] == ["999999.json", "1000000.json"]

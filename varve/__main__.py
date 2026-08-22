@@ -38,6 +38,13 @@ def main(argv=None):
 
     p = sub.add_parser("verify", help="walk the hash chain; exit 1 if broken")
     p.add_argument("root")
+    p.add_argument("--expect-head", help="previously witnessed chain-head hash; catches truncation/forks")
+
+    p = sub.add_parser("head", help="print the chain head (seq + hash) — witness this externally")
+    p.add_argument("root")
+
+    p = sub.add_parser("beliefs", help="claim-bearing entries with standing (corrected-by aware)")
+    p.add_argument("root")
 
     p = sub.add_parser("task", help="manage the author's queue")
     p.add_argument("action", choices=["add", "list"])
@@ -90,13 +97,22 @@ def main(argv=None):
         print("%s %s (%s)" % (entry["id"], entry["title"], entry["hash"][:12]))
 
     elif args.cmd == "verify":
-        problems = store.verify(args.root)
+        problems = store.verify(args.root, expect_head=args.expect_head)
         if problems:
             print("CHAIN BROKEN:")
             for p_ in problems:
                 print("  -", p_)
             sys.exit(1)
-        print("chain intact — %d entries verified" % len(store.read_log(args.root)))
+        seq, h = store.head(args.root)
+        print("chain intact — %d entries verified; head e%06d %s" % (seq, seq, h))
+
+    elif args.cmd == "head":
+        seq, h = store.head(args.root)
+        print("e%06d %s" % (seq, h))
+
+    elif args.cmd == "beliefs":
+        for e, status in views.beliefs(args.root):
+            print("%s [%s] %s — %s" % (e["id"], e["kind"], e["title"], status))
 
     elif args.cmd == "task":
         if args.action == "add":

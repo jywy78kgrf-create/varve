@@ -76,3 +76,34 @@ def test_backdating_impossible(log):
     with pytest.raises(ValueError, match="founding"):
         store.append(log, {"kind": "hunch", "title": "t", "body": "b",
                            "ts": "1999-01-01T00:00:00Z"})
+
+
+def test_backdated_after_founding_rejected_at_gate(log):
+    """Reviewer finding #1: the gate itself must enforce monotonicity, not
+    leave it for verify() to notice after the write. The crafted timestamp
+    is AFTER the founding but BEFORE the predecessor — the exact window the
+    old founding-only check waved through."""
+    from datetime import datetime, timedelta
+
+    t0 = datetime.strptime(store.read_log(log)[0]["ts"], "%Y-%m-%dT%H:%M:%SZ")
+    fmt = lambda t: t.strftime("%Y-%m-%dT%H:%M:%SZ")
+    store.append(log, {"kind": "hunch", "title": "t", "body": "b",
+                       "ts": fmt(t0 + timedelta(seconds=20))})
+    with pytest.raises(ValueError, match="only moves forward"):
+        store.append(log, {"kind": "hunch", "title": "t2", "body": "b",
+                           "ts": fmt(t0 + timedelta(seconds=10))})
+
+
+def test_anchor_lint(log):
+    with pytest.raises(ValueError, match="http"):
+        store.append(log, {"kind": "observation", "title": "t", "body": "b",
+                           "anchors": [{"type": "url", "ref": "example.com/x"}]})
+    with pytest.raises(ValueError, match="hex"):
+        store.append(log, {"kind": "observation", "title": "t", "body": "b",
+                           "anchors": [{"type": "sha256", "ref": "beef"}]})
+    with pytest.raises(ValueError, match="does not exist"):
+        store.append(log, {"kind": "observation", "title": "t", "body": "b",
+                           "anchors": [{"type": "entry", "ref": "e009999"}]})
+    e = store.append(log, {"kind": "observation", "title": "t", "body": "b",
+                           "anchors": [{"type": "entry", "ref": "e000001"}]})
+    assert e["anchors"][0]["ref"] == "e000001"

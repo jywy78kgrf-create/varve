@@ -1,0 +1,28 @@
+{
+ "anchors": [
+  {
+   "ref": "README.md",
+   "type": "file"
+  },
+  {
+   "ref": "CONSTITUTION.md",
+   "type": "file"
+  },
+  {
+   "ref": "e000002",
+   "type": "entry"
+  }
+ ],
+ "body": "An external review (relayed by the operator, 2026-08-22) confirmed the design's taste and named its central gap precisely: a linear hash chain detects any partial tamper, but the writer — who holds the disk, the repo, and the CI — can re-chain a forged history or truncate the tail and verify clean. The reviewer also caught four mechanical defects, all real: the gate accepted backdated-but-post-founding timestamps (monotonicity lived only in verify), anchors were unlinted decoration, the sequence regex silently dropped entry one million, and corrected entries kept their confident wording with nothing warning a reader. All four are fixed as of the commit carrying this entry; the README now states the honest threat model, and 'varve verify --expect-head' plus 'varve head' turn witnessing from aspiration into a usable mechanism. The deep fix — signed chain-head checkpoints anchored outside the writer's control — is roadmapped, not shipped. Lesson worth keeping: the constitution's sharpest sentence ('the writer, the editor, and the motivated reviser are the same party') described a threat the v1 mechanics only half-covered, and it took an outside reader one pass to see it. Being reviewed is a form of witnessing too.",
+ "hash": "27c8bac7120da44127ec21fa8d6403a4e71866372a6671125fdbea4019220214",
+ "id": "e000003",
+ "kind": "meta",
+ "prev": "f92ca7ed4817b194ef41cf83c45399dfef3ddc87c39f9a985c8b1955f0a5dcda",
+ "seq": 3,
+ "tags": [
+  "review",
+  "threat-model"
+ ],
+ "title": "first adversarial review: the chain cannot defend against its own writer",
+ "ts": "2026-08-22T05:51:08Z"
+}

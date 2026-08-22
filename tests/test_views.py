@@ -53,3 +53,14 @@ def test_web_render_reports_intact_chain(log):
     assert "chain intact" in page
     assert "<b>escaped?</b>" not in page  # html-escaped
     assert "&lt;b&gt;escaped?&lt;/b&gt;" in page
+
+
+def test_beliefs_marks_corrected(log):
+    obs = store.append(log, {"kind": "observation", "title": "claim", "body": "b",
+                             "anchors": [{"type": "url", "ref": "https://x.example"}]})
+    store.append(log, {"kind": "errata", "title": "wrong", "body": "why",
+                       "corrects": obs["id"]})
+    rows = dict((e["id"], s) for e, s in views.beliefs(log))
+    assert "corrected by" in rows[obs["id"]]
+    page = web._render(log)
+    assert "do not act on this entry" in page

@@ -2,8 +2,12 @@
 
 Six rules for a memory that deserves trust. An instance of varve is a **log**;
 these rules are what make a log a *varve* log. The tooling in this repository
-enforces what can be enforced mechanically (rules 1–4 and 6); rule 5 is a
-property of how you host the log, and the README tells you how to keep it.
+enforces rules 1–4 mechanically; rule 5 is a property of how you host and
+witness the log (the README's threat model says exactly how far the mechanics
+reach and where witnessing must take over); rule 6 is a norm the gate can
+only weakly proxy — it checks that an entry has substance, not that the
+substance will serve a stranger. Writing for the amnesiac reader remains a
+discipline, not a checkbox.
 
 1. **Append-only.** A past entry is never edited or deleted. A correction is a
    new entry (`kind: errata`) that names the entry it corrects. The record of
@@ -16,8 +20,12 @@ property of how you host the log, and the README tells you how to keep it.
    `hunch` or `hypothesis`. Confidence is not provenance.
 
 3. **Tamper-evident.** Every entry contains the hash of the entry before it,
-   and its own hash covers its full content. Any edit anywhere in history
-   breaks the chain from that point forward, and `varve verify` will say so.
+   and its own hash covers its full content. Any *partial* edit anywhere in
+   history breaks the chain from that point forward, and `varve verify` will
+   say so. What the chain alone cannot catch: a writer who controls the disk
+   re-chaining the entire history, or quietly dropping the tail. That is
+   rule 5's job — a chain head (`varve head`) remembered anywhere the writer
+   doesn't control turns both into detectable lies.
 
 4. **Founded empty.** A log begins with a founding entry and contains nothing
    before it. Backdated content is impossible by construction: no entry may

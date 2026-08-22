@@ -38,6 +38,34 @@ def digest(root, days=7):
     return "\n".join(lines)
 
 
+def corrections(entries):
+    """Map of entry id -> list of errata entry ids that correct it.
+
+    Append-only means a falsified observation keeps its confident wording
+    forever; the correction lives in a later entry. This map is how every
+    view keeps an amnesiac reader from acting on a dead claim — the record
+    stays intact, the *reading* carries the warning."""
+    out = {}
+    for e in entries:
+        if e["kind"] == "errata" and e.get("corrects"):
+            out.setdefault(e["corrects"], []).append(e["id"])
+    return out
+
+
+def beliefs(root):
+    """Current belief state: every claim-bearing entry with its standing.
+    Returns rows of (entry, status) where status is 'standing' or
+    'corrected by eNNNNNN[, ...]'. Derived, like everything here."""
+    entries = store.read_log(root)
+    corr = corrections(entries)
+    rows = []
+    for e in entries:
+        if e["kind"] in ("observation", "hypothesis", "hunch", "prediction"):
+            status = ("corrected by " + ", ".join(corr[e["id"]])) if e["id"] in corr else "standing"
+            rows.append((e, status))
+    return rows
+
+
 def unresolved_predictions(entries):
     resolved = {e.get("resolves") for e in entries if e["kind"] == "resolution"}
     return [e for e in entries if e["kind"] == "prediction" and e["id"] not in resolved]
