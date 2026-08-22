@@ -142,6 +142,21 @@ committed to the repo beside the log.
   linkage witnesses without disclosure. This matters if the multi-tenant
   idea ever ships.
 
+## Test obligations (phase 1 is not done without these)
+
+The attacks this document describes ship as negative tests, same treatment
+the backdating window got — an attack described but never tested is a
+regression waiting to ship:
+
+- append a forged `witness-policy` entry naming attacker keys, mint
+  checkpoints against it, assert `varve verify --require-sigs` rejects
+  (the rogue-policy append, this doc's own first-draft hole);
+- after a legitimate rotation, present a checkpoint signed under the OLD
+  policy, assert rejection (stale-policy replay);
+- plus the existing chain suite's spirit carried over: rewrite-and-rechain
+  against a witnessed checkpoint, truncation below the last witnessed seq,
+  and a checkpoint whose namespace string differs from the policy constant.
+
 ## Ship order
 
 1. Checkpoint format + `varve witness keygen/init` (runs on the OPERATOR's
