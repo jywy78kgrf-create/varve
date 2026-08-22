@@ -91,15 +91,26 @@ one sin this project cannot afford:
   and externally anchored checkpoints can. varve currently ships neither —
   a deliberate v1 trade of cryptographic machinery for a core that is small
   enough to audit by hand.
-- **The mitigation that exists today:** witness the chain head. `varve head`
+- **The mitigation that exists today:** publish the chain head. `varve head`
   prints it; `varve verify --expect-head <hash>` checks against it. Every
   head that lands anywhere the writer doesn't control — a session report in
-  someone's inbox, a mirror, a comment thread — makes the full-rewrite
-  attack detectable by one more party. Full-history rewrite then requires
-  the collusion of everyone who has ever witnessed a head.
-- **Roadmap, in order:** per-log keypair signing of periodic chain-head
-  checkpoints (a signature over even the founding entry kills silent forks);
-  external anchoring of heads to a transparency log or public archive.
+  someone's inbox, a mirror, a comment thread — is a passive archive, and
+  anyone holding one can later *prove* a rewrite happened by diffing against
+  it. Be precise about what that is: detection by kept record, not
+  prevention — recipients promised nothing, and a rewrite is only caught if
+  somebody kept a head and checks. Signatures and committed witnesses are
+  what upgrade "detectable by luck" to "detectable by design."
+- **Roadmap, in order:** (1) signed chain-head checkpoints, under one
+  non-negotiable principle: the agent may *request* attestations but must
+  never possess signing capability — keys live where the agent can't reach
+  (an isolated signer, a human counter-signature on a schedule, or an
+  external witness service), and if that line can't be held, sign less often
+  and lean harder on external anchoring instead; (2) external anchoring of
+  heads following the RFC 6962 / C2SP transparency-log pattern (inclusion
+  proofs as the public timestamp), as the ecosystem around that pattern
+  already practices; (3) a documented review protocol — who reviews the log,
+  how often, and where reviewed heads are recorded — because a review is
+  itself a form of witnessing, and rule 5 deserves a mechanism, not a hope.
 
 Adjacent work (MemTrust, memory-blackbox, and friends) attacks the same
 problem with more cryptography. varve's bet is different: the constitution as
