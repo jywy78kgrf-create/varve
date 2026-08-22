@@ -74,27 +74,70 @@ committed to the repo beside the log.
   every machine varve runs on, does Ed25519 underneath, supports hardware
   tokens natively (ed25519-sk), and means witnesses use keys and custody
   practices they already have. The verifier dependency becomes a
-  universally-present binary instead of a Python package. KMS-held keys can
-  still participate: the checkpoint bytes are what's signed; any scheme the
-  policy pins is acceptable per-witness (`witness_id` carries the type).
+  universally-present binary instead of a Python package. Pins that make
+  sshsig safe here rather than merely convenient:
+  - **One namespace constant, enforced at both ends.** SSHSIG signs the
+    message plus a namespace string (`-n`); the policy fixes
+    `varve-checkpoint@<log-id>` and both signer and verifier reject
+    anything else. That is the domain separation — a witness signing under
+    a loose namespace makes checkpoint signatures replayable across
+    protocols.
+  - **The policy file IS the allowed_signers file.** One registry, not two:
+    the pinned witness policy is byte-for-byte the OpenSSH
+    `allowed_signers` database (witness_id ↔ key, `-I <witness_id>` at
+    verify; newer OpenSSH can also restrict namespaces inside it). The
+    artifact the daily report pins is the artifact the verifier consumes —
+    no translation layer to drift.
+  - **Hardware keys: touch is a feature.** `ed25519-sk` requires
+    OpenSSH ≥ 8.2 and a FIDO2 token (≥ 8.0 for `-Y` itself; both floors go
+    in the README). The default touch requirement is physical presence as
+    part of witnessing — policy rejects keys created with
+    `-O no-touch-required`. sk private keys are bound to the token: the
+    keygen ceremony registers a backup token, or key loss is witness loss
+    (rotation handles it, but plan for it).
+  - **Explicit `scheme` per signature record** (`sshsig` | `kms-ed25519` |
+    …): KMS signatures are not SSHSIG-shaped, so verifiers dispatch on a
+    field instead of guessing. Per-witness pinning made structural.
 - **Bootstrap for logs that already exist.** The sketch pins the initial
   witness set in the founding entry — right for new logs, impossible for
   founded ones (append-only forbids amending the founding). Adoption for an
   existing log is a rotation-from-empty: a `witness-policy` entry appended
-  to the chain naming the set and k, pinned out-of-band exactly like the
-  founding hash — the daily report already states heads verbatim, and that
-  channel pins the policy entry's hash the same way. Rotation thereafter:
-  policy changes are entries co-signed by a quorum of the *outgoing* set
-  (the TUF pattern) — trust evolves forward, append-only, same philosophy
-  as the log.
+  to the chain naming the set and k. But note the hole rotation-by-entry
+  opens and the two rules that close it — without them, a disk-holder need
+  not forge or truncate anything: they *append* a policy entry naming their
+  own keys, keep chaining, and mint checkpoints that verify perfectly
+  against the newest policy.
+  1. **Policy transitions are quorum-gated, except the first.** A policy
+     entry is valid iff co-signed by a quorum of the OUTGOING set (the TUF
+     pattern). The sole exception is the initial policy-from-empty, which
+     has no predecessor and leans entirely on external pinning — that
+     asymmetry is the one moment trust enters from outside the chain, and
+     it gets named rather than hidden: **the first-policy exception**.
+  2. **The daily report pins the policy beside the head.** The report
+     already states the chain head verbatim; it states the current policy
+     entry's hash next to it. Appending a rogue policy then requires
+     defeating every kept report — the same bar as rewriting the head.
+     Cost: one template line.
+  **Coverage boundary, stated plainly:** entries before the first witnessed
+  checkpoint are protected by report-diffing only, forever. Cryptographic
+  coverage begins at the first checkpoint's seq; nothing is retroactive.
 - **Hash-only witnessing for private logs.** The high-water-mark check does
-  not require entry *content*: linkage alone — each new (prev, hash) pair
-  chaining from the stored head — pins the writer's commitments, and anyone
-  who later obtains content can check it against the committed hashes. A
-  witness fed only hash pairs cannot validate content, but fork-protection
-  survives. Public logs (this repo) send full entries; private/tenant logs
-  can witness without disclosure. This matters if the multi-tenant idea
-  ever ships.
+  not require entry *content*: linkage alone — each new (seq, prev, hash)
+  tuple chaining from the stored head — pins the writer's commitments, and
+  anyone who later obtains content can check it against the committed
+  hashes. Two properties that keep this a mode rather than a schism:
+  - **The checkpoint object is identical in both modes.** Privacy is a
+    property of what the witness *ingests*, not what it *attests* — both
+    sign the same `{log, seq, head}`. One format, one verifier path;
+    tenants choose exposure without forking the ecosystem.
+  - **The tiers are named honestly in the policy vocabulary:** a *linkage
+    witness* enforces chaining and monotonicity (timestamps ride inside the
+    hashed content) but cannot audit anchors or labels; only a *full
+    witness* saw the entries. Tier-1 attestation must never imply
+    tier-2 review.
+  Public logs (this repo) use full witnesses; private/tenant logs can use
+  linkage witnesses without disclosure. This matters if the multi-tenant
+  idea ever ships.
 
 ## Ship order
 
