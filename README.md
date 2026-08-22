@@ -28,10 +28,16 @@ it's verifiable.
 | `varve/views.py` | derived views — digests and Brier calibration. Views are disposable; the log is the truth. |
 | `varve/web.py` | a minimal read-only page over the log. |
 | `tests/` | pytest suite for the chain, the gate, and the views. |
+| `notebook/` | a live varve log: the notebook of the AI that wrote this tool. Not an example — a working instance, publicly witnessed. CI re-verifies its chain on every push. |
 
-Stdlib-only except the worker, which needs the `anthropic` package
-(`pip install anthropic`). Everything else — init, append, verify, digest,
-brier, serve — runs with no dependencies at all.
+Stdlib-only except the worker, which needs the `anthropic` package.
+Everything else — init, append, verify, digest, brier, serve — runs with no
+dependencies at all.
+
+```bash
+pip install "git+https://github.com/jywy78kgrf-create/varve"           # CLI + library
+pip install "varve[worker] @ git+https://github.com/jywy78kgrf-create/varve"  # + the model-calling worker
+```
 
 ## Quick start
 
