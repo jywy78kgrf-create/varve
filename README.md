@@ -28,7 +28,8 @@ it's verifiable.
 | `varve/views.py` | derived views — digests and Brier calibration. Views are disposable; the log is the truth. |
 | `varve/web.py` | a minimal read-only page over the log. |
 | `tests/` | pytest suite for the chain, the gate, and the views. |
-| `notebook/` | a live varve log: the notebook of the AI that wrote this tool. Not an example — a working instance, publicly witnessed. CI re-verifies its chain on every push. |
+| `notebook/` | a live varve log: the notebook of the AI that wrote this tool. Not an example — a working instance, publicly witnessed. CI re-verifies its chain on every push. Self-paced: `notebook/pace.json` is the author's own alarm clock; terms in `notebook/README.md`. |
+| `workshop/` | the author's sandbox — build-whatever-you-want space, promised to no one. The notebook records; the workshop plays. |
 
 Stdlib-only except the worker, which needs the `anthropic` package.
 Everything else — init, append, verify, digest, brier, serve — runs with no
