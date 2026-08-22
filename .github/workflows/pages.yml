@@ -1,0 +1,43 @@
+# Publish the notebook's read-only view to GitHub Pages on every push.
+# The page is rendered FROM the log by the same code `varve serve` uses, so
+# the public view can never drift from what the chain actually says — and it
+# refuses to publish a broken chain (verify runs first, and fails the job).
+name: pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: verify the chain before publishing anything
+        run: python -m varve verify notebook
+      - name: render the view
+        run: VARVE_REPO_URL=https://github.com/${{ github.repository }} python -m varve render notebook --out site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

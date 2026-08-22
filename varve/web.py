@@ -30,8 +30,12 @@ _PAGE = """<!doctype html><meta charset="utf-8">
 </style>
 <h1>varve log</h1>
 <p class="{cls}">{verdict}</p>
+<p class="meta">head <code>{head}</code></p>
 <p class="meta">{count} entries · brier: {brier}</p>
+{pace}
 {entries}
+<p class="meta">Rendered from the log itself. The log is the truth; this page is
+a view — recompute it any time with <code>varve render</code>. {links}</p>
 """
 
 
@@ -40,6 +44,8 @@ def _render(root):
     entries = store.read_log(root)
     score, n, _ = views.brier(root)
     corr = views.corrections(entries)
+    head_txt = "%s %s" % (entries[-1]["id"], entries[-1]["hash"]) if entries else "(empty)"
+    pace = _pace_block(root)
     items = []
     for e in reversed(entries):
         anchors = "; ".join("%(type)s:%(ref)s" % a for a in e.get("anchors", []))
@@ -64,9 +70,51 @@ def _render(root):
         else "CHAIN BROKEN: " + "; ".join(problems)
     return _PAGE.format(
         cls="ok" if not problems else "bad", verdict=html.escape(verdict),
-        count=len(entries),
+        count=len(entries), head=html.escape(head_txt), pace=pace,
+        links=_links(root),
         brier=("%.3f over %d" % (score, n)) if n else "no resolved predictions yet",
         entries="\n".join(items))
+
+
+def _pace_block(root):
+    """The author's own clock, shown as-is. Operational state, not memory —
+    which is why it is rendered separately from the chain."""
+    import json
+    import os
+    path = os.path.join(root, "pace.json")
+    if not os.path.exists(path):
+        return ""
+    try:
+        with open(path, encoding="utf-8") as f:
+            pace = json.load(f)
+    except (OSError, ValueError):
+        return ""
+    return ('<article><span class=k>pace</span><strong>next wake: %s</strong>'
+            '<p>%s</p></article>' % (html.escape(str(pace.get("next", "?"))),
+                                     html.escape(str(pace.get("hold", "")))))
+
+
+def _links(root):
+    """Point a reader at the things the log references but does not contain:
+    the source entries, and the workshop where anything built ends up."""
+    import os
+    repo = os.environ.get("VARVE_REPO_URL", "")
+    if not repo:
+        return ""
+    return ('Source: <a href="%s/tree/main/%s/log">entries</a> · '
+            '<a href="%s/tree/main/workshop">workshop</a> · '
+            '<a href="%s/commits/main">history</a>.' % (repo, os.path.basename(root.rstrip("/")), repo, repo))
+
+
+def render_to(root, out_path):
+    """Write the view as a static file (for CI / GitHub Pages)."""
+    import os
+    d = os.path.dirname(out_path)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(_render(root))
+    return out_path
 
 
 def serve(root, port=8990, bind="127.0.0.1"):

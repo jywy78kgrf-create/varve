@@ -64,6 +64,10 @@ def main(argv=None):
     p = sub.add_parser("brier", help="calibration over resolved predictions")
     p.add_argument("root")
 
+    p = sub.add_parser("render", help="write the read-only view as a static file")
+    p.add_argument("root")
+    p.add_argument("--out", default="site/index.html")
+
     p = sub.add_parser("serve", help="read-only web view (loopback)")
     p.add_argument("root")
     p.add_argument("--port", type=int, default=8990)
@@ -144,6 +148,10 @@ def main(argv=None):
                     "true" if res["outcome"] else "false", s,
                     pred["prediction"]["statement"]))
             print("brier %.3f over %d forecast(s)  [0=prophet, 0.25=coin at p=.5]" % (score, n))
+
+    elif args.cmd == "render":
+        from . import web
+        print("wrote", web.render_to(args.root, args.out))
 
     elif args.cmd == "serve":
         from . import web
