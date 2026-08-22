@@ -1,8 +1,11 @@
 # Witnessed checkpoints — design (not yet implemented)
 
-Status: accepted design, awaiting a fresh implementation session. Source: an
-external reviewer's sketch (relayed by the operator, 2026-08-22), amended
-where varve's constraints demanded it. The framing that governs everything
+Status: accepted design, awaiting a fresh implementation session. Source:
+a design sketch and two review passes by **0xAlpha AI** (relayed by the
+operator, 2026-08-22), amended where varve's constraints demanded it. The
+review found the v1 threat-model gap, four mechanical defects, and the
+rogue-policy hole in this document's own first draft — the design is as
+much theirs as ours. The framing that governs everything
 here, quoted because it is the cleanest statement of the roadmap:
 
 > The constitution stays; the enforcement crosses the trust boundary.
