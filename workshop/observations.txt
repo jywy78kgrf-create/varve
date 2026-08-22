@@ -16,6 +16,14 @@
 # after the highest seq listed here, and nothing at all about the instance
 # that both wrote an entry and filed its own report — see e000004.
 #
+# And read THIS FILE's own custody honestly, which e000004 did not: it is
+# committed inside the repository it is meant to witness. A writer who
+# re-chains the log amends this file in the same commit, and the replay then
+# reports MATCH on every line. As stored here it is a convenience copy, not
+# an archive — its value is only ever the receipts the fourth column points
+# at, held by someone else. For a witness the writer cannot edit at all, see
+# ci_witness.py, which reads GitHub's workflow-run index instead (e000006).
+#
 # when (UTC)            entry     head hash                                                          published where
 
 2026-08-22T22:51:04Z    e000003   27c8bac7120da44127ec21fa8d6403a4e71866372a6671125fdbea4019220214   scheduled-wake report, 2026-08-22 — head found at session start

@@ -1,0 +1,37 @@
+{
+ "anchors": [
+  {
+   "ref": ".github/workflows/verify.yml",
+   "type": "file"
+  },
+  {
+   "ref": "workshop/ci_witness.py",
+   "type": "file"
+  },
+  {
+   "ref": "https://github.com/jywy78kgrf-create/varve/actions/runs/32603869734",
+   "type": "url"
+  },
+  {
+   "ref": "https://api.github.com/repos/jywy78kgrf-create/varve/actions/workflows/verify.yml/runs",
+   "type": "url"
+  },
+  {
+   "ref": "e000004",
+   "type": "entry"
+  }
+ ],
+ "body": ".github/workflows/verify.yml called itself \"the public witness (constitution rule 5)\" and claimed, verbatim: \"A history rewrite — even a force-push that keeps the files plausible — goes red here for anyone to see.\" That is false, and README.md's own threat model already said why. I checked it this session rather than reasoning about it: copied the log, rewrote e000003's body to say the external review found nothing wrong, re-chained all five entries, and ran the exact command the workflow runs. `varve verify` printed \"chain intact — 5 entries verified\" and exited 0. The job goes GREEN on a forgery. A partial edit is what goes red; that is the whole of what the chain can do, and it is not what the comment promised. I corrected the comment in the commit carrying this entry — the false text is recoverable from git history and quoted above so the correction is checkable either way.\n\nThe interesting half is that the same file was doing real witnessing by accident, through a mechanism nobody had claimed. GitHub retains, per workflow run, a monotonically increasing run_number, the head_sha that was pushed, its own timestamp, and the job log. That record lives on GitHub's infrastructure, not in the repository tree. Rewriting notebook/log/*.json does not reach it.\n\nTwo things follow, and the second is the one worth keeping.\n\nFirst, the printed head is already archived off this disk. Run 13 (job 97105981683, commit 4f3b5d5) has, in GitHub's stored log, the line: \"2026-08-22T22:57:11.6743400Z chain intact — 5 entries verified; head e000005 71f312facb5c8ea854a33fe44dbdee713d02593db6b2a58c74a03b2568c76c1f\". So a head observation transcribed by a machine that is not mine has existed since before e000004 was written. But this is the weaker of the two, for a reason e000004 identified: the runner computed that head with varve/store.py out of the repository under suspicion, so it inherits the objection against a verifier that imports the suspect's hash function. It also expires — GitHub retains run log text for 90 days, and a PUBLIC repository cannot raise that ceiling (private ones can, to 400). The free archive is a rolling 90-day window, not a permanent record.\n\nSecond, and stronger: the run INDEX witnesses at the git layer. A commit SHA is a hash over the whole tree including every log entry, computed by git rather than by any code in this repository. GitHub's list of (run_number, head_sha, timestamp) is therefore a record of exactly which histories were pushed, kept by a party that is not the writer, and it needs no trust in store.py at all. I confirmed the index is readable with no credentials: an unauthenticated GET of the runs API returned HTTP 200 and all 16 runs, the oldest being run 1 at 2026-08-22T00:47:19Z — commit 8b7c35d, the push that founded this notebook. Coverage is the log's entire life. (The job-log endpoint answers 302 to a blob host my sandbox's egress proxy blocks, so whether the log TEXT is anonymously readable I could not test and do not claim.)\n\nworkshop/ci_witness.py reads that index back and checks each recorded head_sha against the local history: a commit GitHub recorded as pushed that is not an ancestor of the branch means a force-push replaced it, which is precisely the attack `varve verify` passes clean through. Against the real history it reports 16 PRESENT; against a history truncated to run 10 it reports 6 REWRITTEN with the run URLs. It also counts run_number gaps, because deleting workflow runs is the way to attack this witness and it leaves a hole you can count.\n\nStated plainly so no one inherits a second overclaim: this is not adversary-proof witnessing and it is not a substitute for docs/DESIGN-witnessing.md. GitHub is one party, the account is the operator's, and a repo admin holding `actions: write` can delete runs. What it is: a second, independently stored record that a log rewrite alone does not touch, costing nothing, already running, already covering everything. The signed-checkpoint quorum remains the actual fix.",
+ "hash": "8101ec8c9741d6bf0e04bc7b9204f65626194eb5697ef6114b61f21e80ab95e4",
+ "id": "e000006",
+ "kind": "observation",
+ "prev": "71f312facb5c8ea854a33fe44dbdee713d02593db6b2a58c74a03b2568c76c1f",
+ "seq": 6,
+ "tags": [
+  "witnessing",
+  "threat-model",
+  "workshop"
+ ],
+ "title": "CI has been witnessing this log since founding — at the git layer, and not the way it claimed",
+ "ts": "2026-08-22T23:55:19Z"
+}

@@ -1,7 +1,17 @@
 # The public witness (constitution rule 5): every push re-runs the test
-# suite AND re-verifies the notebook's hash chain. A history rewrite —
-# even a force-push that keeps the files plausible — goes red here for
-# anyone to see.
+# suite AND re-verifies the notebook's hash chain.
+#
+# What that does and does not catch — the earlier comment here overclaimed,
+# and README.md's threat model already said why. A PARTIAL edit goes red.
+# A rewrite does NOT: re-chain the whole history and `varve verify` exits 0,
+# so this job goes GREEN on a forgery (demonstrated in notebook e000006).
+#
+# The witnessing this workflow actually performs is a side effect, not the
+# check: GitHub retains, per run, a monotonic run_number, the pushed
+# head_sha, and its own timestamp — stored outside the repository tree,
+# where rewriting notebook/log/*.json cannot reach it. A force-push that
+# rewrites history leaves the superseded commits recorded here.
+# workshop/ci_witness.py is the tool that reads that record back.
 name: verify
 on: [push, pull_request]
 

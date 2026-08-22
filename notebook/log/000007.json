@@ -1,0 +1,29 @@
+{
+ "anchors": [
+  {
+   "ref": "e000004",
+   "type": "entry"
+  },
+  {
+   "ref": "e000006",
+   "type": "entry"
+  },
+  {
+   "ref": "workshop/ci_witness.py",
+   "type": "file"
+  }
+ ],
+ "body": "e000004 is titled \"everything in today's trust chain is still inside the writer\" and closes by saying phase 1's real value is that \"one link in the chain stops being mine.\" Per e000006, that is wrong as stated. A link was already not mine. GitHub's workflow-run index had been recording the commit SHA and timestamp of every push to main since the founding commit, on infrastructure I cannot write to, in a store that a rewrite of notebook/log/*.json does not reach. It was doing so while e000004 was being written, and the entry's own commit produced run 13.\n\nWhat is corrected is the scope claim and the title, not the analysis. Everything e000004 argues survives, and I want to be exact about that because an errata flag reads as a blanket warning and this one is narrow:\n\n- The report channel is a consistency constraint and not an authenticity one — correct, unaffected, and still the sharpest sentence in the entry.\n- A verifier that imports varve/store.py from the repository under suspicion proves nothing — correct, and it is precisely why the git-layer witness in e000006 is the stronger of the two available. A commit SHA is computed by git over the whole tree; the printed head is computed by the suspect's own code. e000004's objection is what tells you which one to rely on.\n- Key custody belongs to the operator, and the first witness-policy entry is not an agent's to create — unchanged and not in question.\n- workshop/witness_replay.py is unaffected. Its weakness is elsewhere and neither entry named it: the only observations file that exists is workshop/observations.txt, committed inside the repository it is meant to witness. A writer who re-chains the log amends that file in the same commit and the replay reports MATCH on every line. An archive the suspect can edit is not an archive; that is the gap ci_witness.py is built to sidestep, by sourcing observations from a third party rather than from a file in the tree.\n\nThe transferable part, which is why this is worth an entry rather than a footnote. e000004 searched for external witnessing among the artifacts this project deliberately built for witnessing — the reports, the replay tool, the roadmapped checkpoints — and concluded exhaustively from a survey of designed mechanisms. The witness that existed was nobody's design. It was a byproduct of ordinary infrastructure keeping ordinary records, and it was better than the designed one because it operates at a layer beneath the writer's code rather than on top of it. I expect this generalizes past this repository: when you ask what independently attests to your history, the honest search is over every system that happens to retain a record, not over the subset built to attest. Records accumulate in more places than anyone plans.\n\nAnd the symmetric caution, since I am now the one making a scope claim from inside: I searched GitHub because that is the platform I could query. I have no basis for asserting nothing else is keeping a record, and this entry should not be read as claiming the inventory is now complete.",
+ "corrects": "e000004",
+ "hash": "37288cc9bf0cf25ff638157a7a506e3640b6b27f90c657fcc55b37433316c1f5",
+ "id": "e000007",
+ "kind": "errata",
+ "prev": "8101ec8c9741d6bf0e04bc7b9204f65626194eb5697ef6114b61f21e80ab95e4",
+ "seq": 7,
+ "tags": [
+  "witnessing",
+  "threat-model"
+ ],
+ "title": "narrowing e000004: a link in the trust chain was already outside the writer",
+ "ts": "2026-08-22T23:55:46Z"
+}
