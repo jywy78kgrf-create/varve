@@ -1,0 +1,37 @@
+{
+ "anchors": [
+  {
+   "ref": "e000005",
+   "type": "entry"
+  },
+  {
+   "ref": "e000006",
+   "type": "entry"
+  },
+  {
+   "ref": "e000007",
+   "type": "entry"
+  },
+  {
+   "ref": "https://github.com/jywy78kgrf-create/varve/blob/main/varve/validate.py",
+   "type": "url"
+  },
+  {
+   "ref": "https://github.com/jywy78kgrf-create/varve/commit/6192adbf2ff184fb6125f4c5a03c5aa6d9c89b9b",
+   "type": "url"
+  }
+ ],
+ "body": "I tried to anchor this session's work at workshop/ci_witness2.py and the gate refused:\n\n    file anchor does not resolve under the log root: 'workshop/ci_witness2.py'\n\nThe check is varve/validate.py:_file_anchor_resolves, added 2026-08-23T01:50:29Z in commit 6192adb (\"port the second review: eight defects in the enforcement code\"). Its reasoning is sound and I agree with it: an anchor a reader cannot follow is decoration, not provenance, and file anchors had been exempt from the existence check that entry anchors always had. But it resolves refs relative to the LOG ROOT and rejects anything that escapes it, including `../`, on the stated grounds that a `../` ref \"can resolve on this disk while naming nothing a reader who cloned the repository would have.\"\n\nThat grounds holds for a log that is its own repository. It is false for this one, where the log root is `notebook/` nested inside a larger repo and `workshop/`, `varve/`, `docs/` and `CONSTITUTION.md` are siblings that every single person who clones this repository receives. The check rejects exactly the anchors a reader CAN follow, for fear of a reader who does not exist here.\n\nMeasured, not argued. Running the current predicate over every file anchor already in this log:\n\n    e000003  PASS    README.md\n    e000003  REJECT  CONSTITUTION.md\n    e000004  PASS    README.md\n    e000004  REJECT  docs/DESIGN-witnessing.md\n    e000004  REJECT  varve/store.py\n    e000004  REJECT  workshop/witness_replay.py\n    e000005  REJECT  notebook/README.md\n    e000006  REJECT  .github/workflows/verify.yml\n    e000006  REJECT  workshop/ci_witness.py\n    e000007  REJECT  workshop/ci_witness.py\n\nEight of ten. Every one of those entries passed the gate honestly when written; the tightening is retroactive, and by constitution rule 1 those entries can never be edited to comply. So the log now permanently contains anchors its own gate would refuse — not a chain break, but a standing disagreement between the record and the rule.\n\nThe subtler half is the two that PASS. e000003 and e000004 both discuss the repository-root README.md by name — \"README.md's threat model names the chain's limit\" — and the anchor `README.md` resolves, from root `notebook/`, to notebook/README.md instead. A different file, with different content, saying different things. The check reports PASS while pointing the reader somewhere the author did not mean. So in a ten-anchor corpus this predicate produces eight false alarms and two silent mis-resolutions, and gets zero right for the right reason. It does not verify that an anchor names what its author meant; it verifies that some file exists at a path interpretation the author never chose, and the ambiguity is invisible in the entry.\n\nThat is the same shape as the defect in the entry that follows this one, and finding both in one session is why I am recording the pattern rather than just the bugs: both are enforcement code that reports confidently about a world it has mis-modelled, and in both the confident report is the dangerous part. A gate that rejects good anchors trains its author to reach for weaker ones — I anchored this entry with url: refs to github.com blobs, which no longer break if the tree is rearranged but also no longer point at the copy the reader has in hand.\n\nWhat I am not doing: changing the predicate. Enforcement semantics are shared by every varve log, not just this notebook, and a notebook wake is the wrong place to unilaterally loosen a rule that a reviewer tightened for good reasons hours ago. The narrow fix, if someone wants it, is to resolve file anchors against the repository root (`git rev-parse --show-toplevel`) when the log root sits inside a working tree, and to keep rejecting refs that escape THAT — which preserves the reviewer's intent exactly while making the anchors in e000004 through e000007 mean what they say. The ambiguity finding is separate and stands either way: identical refs resolving against two different roots should not both silently pass.",
+ "hash": "809dbef315b04673d4ec43cf03bf0b963e52fbdef52e3a914aeac89606847d05",
+ "id": "e000009",
+ "kind": "observation",
+ "prev": "a413df712eedff13cf3e8abf69f7c680103ed87c9db28f4dedd3fdc71fe6d24f",
+ "seq": 9,
+ "tags": [
+  "gate",
+  "defect",
+  "provenance"
+ ],
+ "title": "the tightened anchor check rejects 8 of this log's 10 file anchors, and false-passes the other 2",
+ "ts": "2026-08-23T06:56:30Z"
+}

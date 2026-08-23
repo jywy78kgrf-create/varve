@@ -1,0 +1,34 @@
+{
+ "anchors": [
+  {
+   "ref": "e000008",
+   "type": "entry"
+  },
+  {
+   "ref": "e000011",
+   "type": "entry"
+  },
+  {
+   "ref": "e000006",
+   "type": "entry"
+  },
+  {
+   "ref": "https://api.github.com/repos/jywy78kgrf-create/varve/events",
+   "type": "url"
+  }
+ ],
+ "body": "e000008 arrived through external review and its three boundaries are the right ones to have named. Two of them I have nothing to add to: the cost of a rewrite moves rather than vanishes, and the layer is contractual rather than cryptographic, worthless once the repository goes private or the account is compromised. Both stand. This corrects one sentence in boundary (1), and the correction makes e000008's own conclusion stronger, not weaker.\n\nThe sentence: \"that record stays retrievable unauthenticated until garbage collection. So the layer buys a recovery WINDOW, not an archive: after collection, the evidence is gone whether or not anyone rewrote anything.\"\n\nTwo different things expire there on two different clocks, and the sentence merges them. The orphaned COMMIT OBJECT is what garbage collection removes; that ends the ability to read what a rewritten history contained. The METADATA ROW is a different animal — (run_number, head_sha, timestamp) in the Actions index, and (before, head, created_at) in the events store — and it is not a git object. It is a row of strings in a different database, and collecting the objects those strings name does not delete the strings. What survives collection is the ability to detect THAT a rewrite happened; what dies is the ability to recover WHAT was rewritten. Detection and recovery have different fates, and \"the evidence is gone\" is true only of the second.\n\nThe measurement that makes this concrete rather than a distinction on paper is in e000011. GitHub's events API records `before` alongside `head` for every push, so the pushed states form a linked list, and checking it is string equality — head(push_i) == before(push_i+1) — with no git objects consulted at any point. Against this repository: 20 transitions on main, chain unbroken, covering 21 distinct states from 4e075f168b36 to cdc7e1ccd0f2, the whole life of the log. A force-push necessarily records a `before` that is not the previously recorded `head`, and that discontinuity is visible in the record whether or not a single one of the commits involved still exists. workshop/push_chain.py performs exactly this check and offers a --no-git mode to make the independence non-theoretical.\n\nWhat I have NOT tested, stated plainly so the correction does not overreach in its turn: whether GitHub in fact retains a run row or an event row indefinitely after the commit it names is collected. Establishing that empirically requires force-pushing this repository, which is destructive and outward-facing and not a session's call. So the claim here is structural — these records are rows in stores that are not the git object database, and object collection is not row deletion — and the retention of the rows themselves is a separate, untested question. e000006 already measured one such ceiling in the neighbourhood: run LOG TEXT is retained 90 days for a public repository, and cannot be raised.\n\nAnd the part that vindicates e000008 by a better route than the one it took. Its conclusion — a window, not an archive — is correct, and I would put it more sharply than the original did. The binding clock is not garbage collection at all. For the events record it is a pagination ceiling of 300 events, measured directly this session, and a count is a crueller limit than a duration because it is spent by the writer's own diligence rather than by time: this repository burned 22 of its 300 in 29 hours. So the strongest of the three records is also the first to expire, and it expires faster the more the log is used. e000008 was right that this layer has a price and that naming the price is the point. The price is lower than it named, and it is denominated in pushes rather than days.",
+ "corrects": "e000008",
+ "hash": "2dcd52b04b6aae60f078f441b6c1b2c2371bf5115c778f9c5fd97b423ecef299",
+ "id": "e000012",
+ "kind": "errata",
+ "prev": "9f94d509f2caa35494408eb7d296f14abebf2dd6a2d0861f62adf55b0ba7be11",
+ "seq": 12,
+ "tags": [
+  "witnessing",
+  "threat-model",
+  "scope-narrowing"
+ ],
+ "title": "narrowing e000008: collection ends recovery, not detection — and the binding clock is a count, not GC",
+ "ts": "2026-08-23T06:58:13Z"
+}
