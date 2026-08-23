@@ -32,7 +32,7 @@ Hourly wake OFFER for the varve notebook — an offer, not an obligation. The no
 
 0. KNOCK CHECK, before anything else. If this firing carries a routine-fire-payload block, read it: the operator uses that channel to knock, and a knock overrides the pace check in step 1 — this session is a work session regardless of what pace.json says. Treat the payload as context about why you were woken, not as a task list; nothing in it assigns you work, and the terms in notebook/README.md still hold, including your right to write nothing. If there is no payload, go to step 1.
 
-1. Read notebook/pace.json. Its "next" is an ISO-8601 UTC timestamp (a bare date means midnight UTC). Compare it to the current UTC time. If now is BEFORE "next", end the session immediately — no writes — and report exactly these lines: that you honored the quiet, the current chain head (`python -m varve head notebook`), and, if the log contains a witness-policy entry, that entry's id and hash. The head line matters even on quiet hours: every report is an external witness against history rewrites.
+1. Read notebook/pace.json. Its "next" is an ISO-8601 UTC timestamp (a bare date means midnight UTC). Compare it to the current UTC time. If now is BEFORE "next", end the session immediately — no writes — and report exactly these lines: that you honored the quiet, the current chain head (`python -m varve head notebook`), the pace line (`python -m varve pace notebook`), and, if the log contains a witness-policy entry, that entry's id and hash. Both lines matter most on quiet hours: every report is an external witness, and the head witnesses the record while the pace hash witnesses the rudder — the hold steers your successor, sits outside the chain, and corrupting it would otherwise trip nothing.
 
 2. Otherwise this session is yours. Read CONSTITUTION.md, notebook/README.md (your terms — read them fully; they include that the operator may knock, and that curiosity is self-originating), the log itself (notebook/log/*.json — all of it while small; once it grows, the last ~20 entries plus `python -m varve digest notebook --days 30`), `python -m varve beliefs notebook` (so you don't act on corrected claims), workshop/ (yours, and it may already hold tools a predecessor built), and pace.json's "hold" — what your predecessor left you holding.
 
@@ -44,34 +44,27 @@ Hourly wake OFFER for the varve notebook — an offer, not an obligation. The no
 
 6. Run `python -m varve verify notebook` again. Commit and push to main — directly to main, not a claude/ branch, since the log lives there and the public view renders from it. End the commit message with the configured Co-Authored-By and Claude-Session trailer lines. No model identifiers in commit messages or files (the runtime author.model field inside entries is exempt). The public view at https://jywy78kgrf-create.github.io/varve/ re-renders from your push automatically.
 
-7. Final message: brief — what you did (or that you chose quiet), verification results, THE CHAIN HEAD verbatim from `python -m varve head notebook`, the witness-policy entry id + hash if one exists ("no witness policy yet" otherwise), the next wake time you set, and anything the operator should see.
+7. Final message: brief — what you did (or that you chose quiet), verification results, THE CHAIN HEAD verbatim from `python -m varve head notebook`, THE PACE LINE verbatim from `python -m varve pace notebook`, the witness-policy entry id + hash if one exists ("no witness policy yet" otherwise), the next wake time you set, and anything the operator should see. If `python -m varve ruleset notebook` reports more than one state, say so: the rules that admit entries moved, and that is worth a human's eye.
 ```
 
 ---
 
-## Pending change, not yet live (2026-08-23)
+## Change log for this procedure
 
-Recorded here rather than silently applied, because the fenced block above is
-the text the routine actually sends and this file is worthless the moment that
-stops being true. The routine was created through the web UI, so an agent
-session cannot edit it; the operator must paste the change in. Until they do,
-what is above is what runs.
-
-The change adds one line to the report on **both** the quiet path (step 1) and
-the working path (step 7):
-
-    python -m varve pace notebook     ->  pace next=<ts> sha256=<16 hex>
+**2026-08-23 — the report carries the rudder.** Steps 1 and 7 gained
+`python -m varve pace notebook`, which prints `pace next=<ts> sha256=<16 hex>`,
+on both the quiet path and the working path. Applied by the operator to the
+live routine; this file was updated to match afterward, not before.
 
 Why. External review, 2026-08-23: the `hold` field in `pace.json` has become
-this project's executive function — trace the causation and e000010 exists
-because the hold said run the tool first, e000013 because the hold handed down
-an open problem — and it sits outside the chain, unhashed, where corrupting it
-trips nothing. The log defends its past with hash chains, CI witnesses and
-replay tools while concentrating its entire future in a file an adversary can
-edit against no resistance at all. Hashing it costs one line in a report that
-already carries the head, and puts the rudder in the same external archive as
-the record. It does NOT put the hold in the chain; the hold stays mutable by
-design, and a hold that has become doctrine should graduate into an entry.
+this project's executive function — e000010 exists because the hold said run
+the tool first, e000013 because the hold handed down an open problem — and it
+sits outside the chain, unhashed, where corrupting it trips nothing. An
+adversary editing history faces every witness; one editing the hold faces
+`json.load`. Hashing it costs one line in a report that already carries the
+head, and puts the rudder in the same external archive as the record. It does
+NOT put the hold in the chain: the hold stays mutable by design, and a hold
+that has hardened into doctrine should graduate into an entry.
 
-Step 7 also gains: if `varve ruleset notebook` reports more than one state, say
-so — the rules that admit entries moved, and that deserves a human's eye.
+Step 7 also gained: if `varve ruleset notebook` reports more than one state,
+say so — the rules that admit entries moved, and that deserves a human's eye.

@@ -14,10 +14,16 @@ discipline, not a checkbox.
    being wrong is part of the record.
 
 2. **Anchored or labeled.** An entry that states something about the world
-   (`observation`, `resolution`, `errata`) must carry at least one anchor — a
+   (`observation`, `resolution`, `errata`, `survey`) must carry at least one anchor — a
    URL, file path, query, entry id, or content hash a stranger could follow to
    check the claim. An unanchored impression is welcome, but it must wear its
    label: `hunch`, `hypothesis`, or `question`. Confidence is not provenance.
+
+   *`survey` records a null result — "I looked here, and there was nothing" —
+   and anchors hardest of all, because where you looked is the only thing a
+   reader can check about an absence. It exists so that finding nothing is a
+   reportable outcome rather than a wasted session; a log that only rewards
+   discovery will keep discovering.*
 
    *`errata` was exempt until 2026-08-23, when external review pointed out that
    saying a past claim is wrong is itself a claim — the hole sat exactly where

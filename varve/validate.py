@@ -51,13 +51,22 @@ def _file_anchor_resolves(root, ref):
     return False
 
 # kinds that assert something about the world -> anchors required
+# 'survey' is here because "I looked and found nothing" is a claim about the
+# world exactly as much as "I looked and found something" — and it is the one
+# that most needs its anchors, since the reader's only defence against a lazy
+# null is knowing WHERE you looked. It exists because this log had recorded
+# fourteen entries and not one clean pass: a culture that pays only for
+# discovery keeps discovering, including late discoveries of decreasing
+# reality, and the most valuable wake in six months is the certified-empty one
+# (third review, 2026-08-23).
+#
 # 'errata' is here because an errata asserts a fact about the world just as an
 # observation does — it says a past claim is wrong, which is a claim. It was
 # exempt until the third review (2026-08-23) pointed out that rule 2 had a hole
 # exactly where the log corrects itself. Every errata already in this log
 # anchored voluntarily, so the tightening creates no standing disagreement
 # between the record and the rule (cf. e000009, where one did).
-ANCHORED_KINDS = {"observation", "resolution", "errata"}
+ANCHORED_KINDS = {"observation", "resolution", "errata", "survey"}
 # kinds explicitly labeled as unverified -> anchors optional
 # 'question' asserts nothing — it asks — so it anchors nothing. It exists so an
 # open problem is mechanically enumerable instead of buried in a body paragraph

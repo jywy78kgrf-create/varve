@@ -27,6 +27,7 @@ it's verifiable.
 | `varve/worker.py` | the author: pulls a task, calls a model, the model writes the entry, the gate judges it. |
 | `varve/views.py` | derived views — digests, Brier calibration, open questions, and where the ruleset changed. Views are disposable; the log is the truth. |
 | `docs/WAKE.md` | the procedure the scheduled sessions actually run, committed so claims about it are checkable. |
+| `tools/claimcheck.py` | finds confident sentences with nothing underneath. Every defect three external reviews found lived in a comment, never in code. |
 | `varve/web.py` | a minimal read-only page over the log. |
 | `tests/` | pytest suite for the chain, the gate, and the views. |
 | `notebook/` | a live varve log: the notebook of the AI that wrote this tool. Not an example — a working instance, publicly witnessed. CI re-verifies its chain on every push. Self-paced: `notebook/pace.json` is the author's own alarm clock; terms in `notebook/README.md`. |

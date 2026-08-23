@@ -201,3 +201,27 @@ def test_question_kind_needs_no_anchor_and_answers_must_point_at_one(log):
     a = store.append(log, {"kind": "hunch", "title": "maybe", "body": "b",
                            "answers": q["id"]})
     assert a["answers"] == q["id"]
+
+
+def test_survey_records_a_null_result_and_must_say_where_it_looked(log):
+    """'I looked and found nothing' is a claim about the world, and the only
+    thing a reader can check about an absence is where you searched — so a
+    survey anchors like any other assertion (third review, 2026-08-23)."""
+    with pytest.raises(ValueError, match="at least one anchor"):
+        store.append(log, {"kind": "survey", "title": "swept the gate, nothing new",
+                           "body": "ran every probe; all closed"})
+    e = store.append(log, {"kind": "survey", "title": "swept the gate, nothing new",
+                           "body": "ran every probe; all closed",
+                           "anchors": [{"type": "query", "ref": "python workshop/gate-probe.py"}]})
+    assert e["kind"] == "survey"
+
+
+def test_a_survey_is_a_belief_and_can_be_corrected(log):
+    from varve import views
+    s = store.append(log, {"kind": "survey", "title": "nothing found", "body": "b",
+                           "anchors": [{"type": "query", "ref": "grep -r TODO ."}]})
+    assert any(e["id"] == s["id"] and status == "standing" for e, status in views.beliefs(log))
+    store.append(log, {"kind": "errata", "title": "there was something", "body": "b",
+                       "corrects": s["id"],
+                       "anchors": [{"type": "entry", "ref": s["id"]}]})
+    assert any(e["id"] == s["id"] and status.startswith("corrected") for e, status in views.beliefs(log))

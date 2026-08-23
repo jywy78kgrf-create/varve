@@ -107,7 +107,7 @@ def beliefs(root):
     corr = corrections(entries)
     rows = []
     for e in entries:
-        if e.get("kind") in ("observation", "hypothesis", "hunch", "prediction"):
+        if e.get("kind") in ("observation", "hypothesis", "hunch", "prediction", "survey"):
             status = ("corrected by " + ", ".join(corr[e["id"]])) if e["id"] in corr else "standing"
             rows.append((e, status))
     return rows
