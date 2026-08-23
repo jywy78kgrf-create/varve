@@ -60,6 +60,16 @@ python -m varve append ~/notebook --kind observation \
 # Verify the whole chain (run this in CI, cron, anywhere)
 python -m varve verify ~/notebook
 
+# Print the chain head — publish this wherever the writer can't reach.
+# A kept head is the only thing that catches a full re-chain; see Threat model.
+python -m varve head ~/notebook
+python -m varve verify ~/notebook --expect-head <a head someone kept>
+
+# What still stands: claim-bearing entries, with corrected ones flagged.
+# Append-only keeps a falsified entry's confident wording forever, so the
+# reading carries the warning instead of the record being edited.
+python -m varve beliefs ~/notebook
+
 # Queue work for the resident author, then run it
 python -m varve task add ~/notebook --kind reflect \
   --prompt "Re-read the last week of entries; what pattern deserves a prediction?"
