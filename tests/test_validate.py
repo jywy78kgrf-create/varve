@@ -72,26 +72,34 @@ def test_resolution_rules(log):
                            "anchors": [{"type": "url", "ref": "https://x"}]})
 
 
-def test_backdating_impossible(log):
-    with pytest.raises(ValueError, match="founding"):
-        store.append(log, {"kind": "hunch", "title": "t", "body": "b",
-                           "ts": "1999-01-01T00:00:00Z"})
+def test_ts_is_reserved_not_chosen(log):
+    """A caller-supplied ts is DISCARDED, not honoured. Rule 4 rests on the
+    timestamp, so it is assigned by the store like seq/id/prev/hash — and the
+    worker hands a model's raw JSON straight to append(), which made this the
+    untrusted path. Found by the second review (QQ1eF, 2026-08-23)."""
+    e = store.append(log, {"kind": "hunch", "title": "t", "body": "b",
+                           "ts": "2099-01-01T00:00:00Z"})
+    assert e["ts"] != "2099-01-01T00:00:00Z"
+    # and the log is still writable, which is the whole point: a post-dated
+    # entry used to jam it permanently, since rule 1 forbids removing it
+    store.append(log, {"kind": "hunch", "title": "t2", "body": "b"})
+    assert store.verify(log) == []
 
 
-def test_backdated_after_founding_rejected_at_gate(log):
-    """Reviewer finding #1: the gate itself must enforce monotonicity, not
-    leave it for verify() to notice after the write. The crafted timestamp
-    is AFTER the founding but BEFORE the predecessor — the exact window the
-    old founding-only check waved through."""
-    from datetime import datetime, timedelta
+def test_gate_still_rejects_backdating_when_called_directly(log):
+    """The monotonicity rules stay in the gate even though append() no longer
+    lets a caller reach them — verify() and any direct validate caller need
+    them, and defence in depth is cheap."""
+    from varve import validate
 
-    t0 = datetime.strptime(store.read_log(log)[0]["ts"], "%Y-%m-%dT%H:%M:%SZ")
-    fmt = lambda t: t.strftime("%Y-%m-%dT%H:%M:%SZ")
-    store.append(log, {"kind": "hunch", "title": "t", "body": "b",
-                       "ts": fmt(t0 + timedelta(seconds=20))})
-    with pytest.raises(ValueError, match="only moves forward"):
-        store.append(log, {"kind": "hunch", "title": "t2", "body": "b",
-                           "ts": fmt(t0 + timedelta(seconds=10))})
+    entries = store.read_log(log)
+    founding_ts = entries[0]["ts"]
+    assert any("founding" in p for p in validate.check(
+        {"kind": "hunch", "title": "t", "body": "b", "ts": "1999-01-01T00:00:00Z"},
+        entries))
+    assert any("only moves forward" in p for p in validate.check(
+        {"kind": "hunch", "title": "t", "body": "b", "ts": founding_ts},
+        [entries[0], dict(entries[0], id="e000002", ts="2030-01-01T00:00:00Z")]))
 
 
 def test_anchor_lint(log):

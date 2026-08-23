@@ -55,11 +55,11 @@ def _context(root, limit=12):
     recent = entries[-limit:]
     lines = ["The log currently ends at %s. Recent entries:" % entries[-1]["id"]]
     for e in recent:
-        lines.append("- %s %s [%s] %s" % (e["id"], e["ts"], e["kind"], e["title"]))
+        lines.append("- %s %s [%s] %s" % (e["id"], e["ts"], e.get("kind", "?"), e.get("title", "")))
     unresolved = [
         e for e in entries
-        if e["kind"] == "prediction"
-        and not any(r.get("resolves") == e["id"] for r in entries if r["kind"] == "resolution")
+        if e.get("kind") == "prediction"
+        and not any(r.get("resolves") == e["id"] for r in entries if r.get("kind") == "resolution")
     ]
     if unresolved:
         lines.append("Unresolved predictions: " + ", ".join(

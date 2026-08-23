@@ -23,8 +23,8 @@ def digest(root, days=7):
         days, len(recent), "y" if len(recent) == 1 else "ies", entries[-1]["id"])]
     for e in recent:
         lines.append("")
-        lines.append("%s %s [%s] %s" % (e["id"], e["ts"][:10], e["kind"], e["title"]))
-        body = e["body"].strip().replace("\n", " ")
+        lines.append("%s %s [%s] %s" % (e["id"], e["ts"][:10], e.get("kind", "?"), e.get("title", "")))
+        body = str(e.get("body", "")).strip().replace("\n", " ")
         lines.append("  " + (body[:200] + "…" if len(body) > 200 else body))
         if e.get("anchors"):
             lines.append("  anchors: " + "; ".join("%(type)s:%(ref)s" % a for a in e["anchors"]))
@@ -47,7 +47,7 @@ def corrections(entries):
     stays intact, the *reading* carries the warning."""
     out = {}
     for e in entries:
-        if e["kind"] == "errata" and e.get("corrects"):
+        if e.get("kind") == "errata" and e.get("corrects"):
             out.setdefault(e["corrects"], []).append(e["id"])
     return out
 
@@ -60,15 +60,15 @@ def beliefs(root):
     corr = corrections(entries)
     rows = []
     for e in entries:
-        if e["kind"] in ("observation", "hypothesis", "hunch", "prediction"):
+        if e.get("kind") in ("observation", "hypothesis", "hunch", "prediction"):
             status = ("corrected by " + ", ".join(corr[e["id"]])) if e["id"] in corr else "standing"
             rows.append((e, status))
     return rows
 
 
 def unresolved_predictions(entries):
-    resolved = {e.get("resolves") for e in entries if e["kind"] == "resolution"}
-    return [e for e in entries if e["kind"] == "prediction" and e["id"] not in resolved]
+    resolved = {e.get("resolves") for e in entries if e.get("kind") == "resolution"}
+    return [e for e in entries if e.get("kind") == "prediction" and e["id"] not in resolved]
 
 
 def brier(root):
@@ -81,7 +81,7 @@ def brier(root):
     entries = store.read_log(root)
     by_id = {e["id"]: e for e in entries}
     rows = []
-    for r in (e for e in entries if e["kind"] == "resolution"):
+    for r in (e for e in entries if e.get("kind") == "resolution"):
         pred = by_id.get(r.get("resolves"))
         if pred is None:
             continue

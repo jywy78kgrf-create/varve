@@ -48,22 +48,29 @@ def _render(root):
     pace = _pace_block(root)
     items = []
     for e in reversed(entries):
-        anchors = "; ".join("%(type)s:%(ref)s" % a for a in e.get("anchors", []))
+        anchors = "; ".join(
+            "%s:%s" % (a.get("type"), a.get("ref")) if isinstance(a, dict) else str(a)
+            for a in (e.get("anchors") or []))
         extra = ""
-        if e["id"] in corr:
+        if e.get("id") in corr:
             extra += "<div class=meta>⚠ corrected by %s — do not act on this entry as written</div>" % (
                 html.escape(", ".join(corr[e["id"]])))
-        if e["kind"] == "prediction":
+        # Read defensively, like views.py: this page is how a reader inspects a
+        # log, and the log most worth inspecting is a damaged one. A KeyError
+        # here would replace the verdict banner — which is the whole point of
+        # the page — with a traceback (second review, 2026-08-23).
+        if e.get("kind") == "prediction" and isinstance(e.get("prediction"), dict):
             p = e["prediction"]
-            extra = "<div class=meta>p=%.2f · resolve by %s · %s</div>" % (
-                p["p"], html.escape(p["resolve_by"]), html.escape(p["statement"]))
+            extra = "<div class=meta>p=%s · resolve by %s · %s</div>" % (
+                html.escape(str(p.get("p"))), html.escape(str(p.get("resolve_by"))),
+                html.escape(str(p.get("statement"))))
         items.append(
             "<article><span class=k>%s</span><strong>%s</strong>"
             "<div class=meta>%s · %s · prev %s…</div>%s<p>%s</p>%s</article>" % (
-                html.escape(e["kind"]), html.escape(e["title"]),
-                html.escape(e["id"]), html.escape(e["ts"]),
-                html.escape(e.get("prev", "")[:12] or "(founding)"), extra,
-                html.escape(e["body"]).replace("\n", "<br>"),
+                html.escape(str(e.get("kind", "?"))), html.escape(str(e.get("title", ""))),
+                html.escape(str(e.get("id", "?"))), html.escape(str(e.get("ts", "?"))),
+                html.escape(str(e.get("prev", ""))[:12] or "(founding)"), extra,
+                html.escape(str(e.get("body", ""))).replace("\n", "<br>"),
                 ("<div class=anchors>anchors: %s</div>" % html.escape(anchors)) if anchors else "",
             ))
     verdict = ("chain intact — %d entries verified" % len(entries)) if not problems \

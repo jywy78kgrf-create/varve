@@ -58,8 +58,17 @@ def read_log(root):
     # numeric sort, not lexicographic: "1000000.json" sorts before "999999.json"
     # as a string, which would shuffle the chain right when the log gets long
     for _, name in sorted(found):
-        with open(os.path.join(d, name), "r", encoding="utf-8") as f:
-            entries.append(json.load(f))
+        path = os.path.join(d, name)
+        with open(path, "r", encoding="utf-8") as f:
+            try:
+                entries.append(json.load(f))
+            except json.JSONDecodeError as exc:
+                # Name the file. An unreadable entry IS a broken chain, and the
+                # reader needs to know which one — a bare JSONDecodeError points
+                # at a column of a file it never names (second review,
+                # 2026-08-23).
+                raise ValueError("%s is not valid JSON: %s" % (
+                    os.path.join(LOG_DIR, name), exc)) from exc
     return entries
 
 
@@ -103,16 +112,23 @@ def append(root, fields):
     last = entries[-1]
 
     entry = dict(fields)
-    for reserved in ("seq", "id", "prev", "hash"):
+    # 'ts' is reserved along with the rest: a timestamp IS a position in
+    # history, and rule 4 (founded empty, time never decreases) rests on it.
+    # It used to be a setdefault, so an author could supply its own — and
+    # worker.py hands the model's raw JSON straight to this function, making
+    # that the untrusted path. A post-dated entry is then permanent: rule 1
+    # forbids removing it, and no later entry may carry an earlier timestamp,
+    # so one future date jams the log for good (second review, 2026-08-23).
+    for reserved in ("seq", "id", "prev", "hash", "ts"):
         entry.pop(reserved, None)
     entry["seq"] = last["seq"] + 1
     entry["id"] = "e%06d" % entry["seq"]
-    entry.setdefault("ts", now_iso())
+    entry["ts"] = now_iso()
     entry.setdefault("anchors", [])
     entry.setdefault("tags", [])
     entry["prev"] = last["hash"]
 
-    problems = validate.check(entry, entries)
+    problems = validate.check(entry, entries, root=root)
     if problems:
         raise ValueError("entry rejected by the gate:\n- " + "\n- ".join(problems))
 
@@ -152,24 +168,46 @@ def verify(root, expect_head=None):
     or a full re-chain by the disk's owner; for those, pass expect_head
     (a previously witnessed chain-head hash) or compare `head()` against
     a record the writer doesn't control."""
-    entries = read_log(root)
+    try:
+        entries = read_log(root)
+    except ValueError as exc:
+        # An unreadable entry is a verification failure, not an exception for
+        # the caller to handle: report it the way every other breakage is
+        # reported so `varve verify` prints it and exits 1.
+        return [str(exc)]
     problems = []
     if not entries:
         return ["log is empty — not even a founding entry"]
-    if entries[0]["seq"] != 1 or entries[0].get("prev") != "":
+    if entries[0].get("seq") != 1 or entries[0].get("prev") != "":
         problems.append("founding entry malformed (seq!=1 or prev not empty)")
     prev_hash, prev_seq, prev_ts = "", 0, ""
     for e in entries:
         tag = e.get("id", "seq %s" % e.get("seq"))
-        if e["seq"] != prev_seq + 1:
+        # Every field below is read defensively. verify() exists to DIAGNOSE a
+        # damaged log, so malformed content must come back as a problem in the
+        # list; raising instead turns "your log is broken, here is where" into
+        # a traceback (second review, 2026-08-23).
+        seq = e.get("seq")
+        if not isinstance(seq, int):
+            problems.append("%s: malformed seq %r (expected an integer)" % (tag, seq))
+        elif seq != prev_seq + 1:
             problems.append("%s: sequence gap (expected %d)" % (tag, prev_seq + 1))
         if e.get("prev", "") != prev_hash:
             problems.append("%s: chain broken (prev hash mismatch)" % tag)
         if entry_hash(e) != e.get("hash"):
             problems.append("%s: content hash mismatch (entry was altered)" % tag)
-        if prev_ts and e.get("ts", "") < prev_ts:
-            problems.append("%s: timestamp earlier than predecessor" % tag)
-        prev_hash, prev_seq, prev_ts = e.get("hash", ""), e["seq"], e.get("ts", "")
+
+        ts = e.get("ts", "")
+        if not (isinstance(ts, str) and validate.TS_RE.fullmatch(ts)):
+            problems.append("%s: malformed timestamp %r (expected YYYY-MM-DDThh:mm:ssZ)" % (tag, ts))
+        else:
+            if prev_ts and ts < prev_ts:
+                problems.append("%s: timestamp earlier than predecessor" % tag)
+            prev_ts = ts
+
+        prev_hash = e.get("hash", "")
+        if isinstance(seq, int):
+            prev_seq = seq
     if expect_head and entries and entries[-1].get("hash") != expect_head:
         problems.append(
             "chain head %s… does not match the witnessed head %s… — "
