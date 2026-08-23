@@ -181,7 +181,7 @@ class Gate(LogTestCase):
         """Rule 1: a correction is a new entry, never an edit."""
         self.assertRejected("must name an existing entry id", kind="errata", corrects="e999999")
         target = self.append(kind="hunch", title="wrong thing")
-        self.append(kind="errata", title="fix", corrects=target["id"])
+        self.append(kind="errata", title="fix", anchors=[{"type": "entry", "ref": "e000001"}], corrects=target["id"])
 
     def test_corrects_is_reserved_for_errata(self):
         self.assertRejected("reserved for kind errata", kind="hunch", corrects="e000001")
@@ -232,7 +232,7 @@ class Views(LogTestCase):
         claim = self.append(kind="hunch", title="a claim")
         rows = dict((e["id"], s) for e, s in views.beliefs(self.root))
         self.assertEqual(rows[claim["id"]], "standing")
-        fix = self.append(kind="errata", title="not so", corrects=claim["id"])
+        fix = self.append(kind="errata", title="not so", anchors=[{"type": "entry", "ref": "e000001"}], corrects=claim["id"])
         rows = dict((e["id"], s) for e, s in views.beliefs(self.root))
         self.assertEqual(rows[claim["id"]], "corrected by " + fix["id"])
 

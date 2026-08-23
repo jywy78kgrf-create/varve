@@ -1,5 +1,5 @@
 {
-  "_comment": "Pre-approval for the notebook's hourly wake sessions. A session that stops to ask permission is not self-paced — the wake would sit blocked until a human happened to look, which defeats the design. Scoped deliberately: reading, running varve itself, git on this repo, and writing files. Nothing here reaches outside the repo, and no credential-touching or destructive command is listed (no rm, no ssh, no key generation — key custody belongs to the operator by design, see docs/DESIGN-witnessing.md).",
+  "_comment": "Pre-approval for the notebook's hourly wake sessions. A session that stops to ask permission is not self-paced — the wake would sit blocked until a human happened to look, which defeats the design. SAY WHAT THIS ACTUALLY GRANTS, because the previous comment here claimed 'no credential-touching or destructive command is listed' while allowing Bash(git push*) — which matches git push --force, the exact act this project exists to detect — and python -c / PYTHONPATH=* python / pip install, which are arbitrary code execution and therefore subsume rm, network access, and credential reads. That comment was false in precisely the way e000006 caught verify.yml being false, found by external review 2026-08-23. What is true now: push is narrowed to the exact forms the wake procedure needs, so no force-push or refspec-force matches, and deny rules below catch the common variants as defence in depth. Arbitrary execution via python remains granted deliberately — the notebook's own audits need it — so treat this allowlist as CONVENIENCE, not containment. The containment story is the one in the threat model: detection by kept record, not prevention. Key custody still belongs to the operator (docs/DESIGN-witnessing.md); nothing here grants it.",
   "permissions": {
     "allow": [
       "Bash(cd*)",
@@ -29,7 +29,9 @@
       "Bash(git checkout*)",
       "Bash(git add*)",
       "Bash(git commit*)",
-      "Bash(git push*)",
+      "Bash(git push)",
+      "Bash(git push origin main)",
+      "Bash(git push -u origin main)",
       "Bash(git rev-parse*)",
       "Edit",
       "Write",
@@ -44,6 +46,22 @@
       "mcp__claude-code-remote__register_repo_root",
       "mcp__github__actions_list",
       "mcp__github__get_file_contents"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --mirror*)",
+      "Bash(git push --delete*)",
+      "Bash(git push*--force*)",
+      "Bash(git push* -f *)",
+      "Bash(git push*:refs/*)",
+      "Bash(git push* +*)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git rebase*)",
+      "Bash(git update-ref*)",
+      "Bash(git reflog delete*)"
     ]
   }
 }

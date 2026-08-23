@@ -10,12 +10,17 @@ verify, instead of pretending to detect claims by regex.
 import json
 import os
 import re
+from datetime import datetime
 
 ANCHOR_TYPES = {"url", "file", "query", "sha256", "entry"}
 
 # The one timestamp shape this log speaks, shared with store.verify so the
 # gate and the verifier cannot drift apart on what a valid ts looks like.
 TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+
+# resolve_by is a calendar date. Checked for shape AND for being a real date —
+# 2026-02-31 matches the pattern and does not exist.
+DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 # 'varve/store.py:170' and 'varve/store.py:170-190' are normal ways to cite a
 # line, so a trailing line reference is stripped before testing existence.
@@ -45,7 +50,13 @@ def _file_anchor_resolves(root, ref):
     return False
 
 # kinds that assert something about the world -> anchors required
-ANCHORED_KINDS = {"observation", "resolution"}
+# 'errata' is here because an errata asserts a fact about the world just as an
+# observation does — it says a past claim is wrong, which is a claim. It was
+# exempt until the third review (2026-08-23) pointed out that rule 2 had a hole
+# exactly where the log corrects itself. Every errata already in this log
+# anchored voluntarily, so the tightening creates no standing disagreement
+# between the record and the rule (cf. e000009, where one did).
+ANCHORED_KINDS = {"observation", "resolution", "errata"}
 # kinds explicitly labeled as unverified -> anchors optional
 LABELED_KINDS = {"hunch", "hypothesis"}
 OTHER_KINDS = {"meta", "errata", "prediction"}
@@ -117,6 +128,15 @@ def check(entry, existing, root=None):
             # anchor a reader cannot follow is decoration, not provenance
             # (second review, 2026-08-23).
             problems.append("file anchor does not resolve under the log root: %r" % ref)
+        elif t == "query":
+            # The gate cannot run a query, so this is shape-only and the honest
+            # framing matters: a 'query' anchor is the WEAKEST anchor type in
+            # this system — it is a claim about a command, not a checked one.
+            # Reject what is obviously not a command so it is at least a thing a
+            # reader could paste (third review, 2026-08-23).
+            if "\n" in ref or len(ref) < 3:
+                problems.append("query anchor must be a single runnable line a reader "
+                                "could paste, not prose: %r" % ref)
         elif t == "entry":
             if not re.fullmatch(r"e\d{6,}", ref):
                 problems.append("entry anchor must look like e000123: %r" % ref)
@@ -150,8 +170,19 @@ def check(entry, existing, root=None):
         conf = p.get("p")
         if not (isinstance(conf, (int, float)) and 0.0 < conf < 1.0):
             problems.append("prediction needs prediction.p strictly between 0 and 1 (0 and 1 are not forecasts)")
-        if not _nonempty_str(p.get("resolve_by")):
-            problems.append("prediction needs prediction.resolve_by (ISO date) — unfalsifiable forecasts don't calibrate")
+        by = p.get("resolve_by")
+        # "soon" used to pass. A resolve_by that isn't a date can't come due, so
+        # the prediction never resolves and never scores — unfalsifiable while
+        # looking falsifiable, which is worse than no field (third review).
+        ok_date = isinstance(by, str) and DATE_RE.fullmatch(by.strip())
+        if ok_date:
+            try:
+                datetime.strptime(by.strip(), "%Y-%m-%d")
+            except ValueError:
+                ok_date = False
+        if not ok_date:
+            problems.append("prediction needs prediction.resolve_by as YYYY-MM-DD — "
+                            "a forecast that cannot come due never calibrates: %r" % (by,))
 
     if kind == "resolution":
         target = entry.get("resolves")

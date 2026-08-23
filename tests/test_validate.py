@@ -34,9 +34,9 @@ def test_body_required(log):
 
 def test_errata_must_point_at_real_entry(log):
     with pytest.raises(ValueError, match="errata"):
-        store.append(log, {"kind": "errata", "title": "t", "body": "b",
+        store.append(log, {"kind": "errata", "anchors": [{"type": "entry", "ref": "e000001"}], "title": "t", "body": "b",
                            "corrects": "e999999"})
-    e = store.append(log, {"kind": "errata", "title": "t", "body": "b",
+    e = store.append(log, {"kind": "errata", "anchors": [{"type": "entry", "ref": "e000001"}], "title": "t", "body": "b",
                            "corrects": "e000001"})
     assert e["corrects"] == "e000001"
 
@@ -115,3 +115,42 @@ def test_anchor_lint(log):
     e = store.append(log, {"kind": "observation", "title": "t", "body": "b",
                            "anchors": [{"type": "entry", "ref": "e000001"}]})
     assert e["anchors"][0]["ref"] == "e000001"
+
+
+def test_errata_must_anchor(log):
+    """An errata asserts a fact — that a past claim is wrong — so rule 2 applies
+    to it like any other assertion. It didn't until the third review
+    (2026-08-23) found the hole sitting exactly where the log corrects itself."""
+    with pytest.raises(ValueError, match="at least one anchor"):
+        store.append(log, {"kind": "errata", "title": "t", "body": "b",
+                           "corrects": "e000001"})
+    e = store.append(log, {"kind": "errata", "title": "t", "body": "b",
+                           "corrects": "e000001",
+                           "anchors": [{"type": "entry", "ref": "e000001"}]})
+    assert e["kind"] == "errata"
+
+
+def test_resolve_by_must_be_a_real_date(log):
+    """'soon' used to pass. A resolve_by that cannot come due makes a forecast
+    unfalsifiable while looking falsifiable — worse than omitting it."""
+    def pred(by):
+        return {"kind": "prediction", "title": "t", "body": "b",
+                "prediction": {"statement": "x", "p": 0.5, "resolve_by": by}}
+    for bad in ("soon", "", "next year", "2026-13-01", "2026-02-31", None, 20261231):
+        with pytest.raises(ValueError, match="resolve_by"):
+            store.append(log, pred(bad))
+    assert store.append(log, pred("2027-01-01"))["prediction"]["resolve_by"] == "2027-01-01"
+
+
+def test_query_anchor_must_look_runnable(log):
+    """The gate cannot run a query, so this is shape-only — and that limit is
+    the point: 'query' is the weakest anchor type in the system."""
+    with pytest.raises(ValueError, match="query anchor"):
+        store.append(log, {"kind": "observation", "title": "t", "body": "b",
+                           "anchors": [{"type": "query", "ref": "ab"}]})
+    with pytest.raises(ValueError, match="query anchor"):
+        store.append(log, {"kind": "observation", "title": "t", "body": "b",
+                           "anchors": [{"type": "query", "ref": "run this\nand that"}]})
+    e = store.append(log, {"kind": "observation", "title": "t", "body": "b",
+                           "anchors": [{"type": "query", "ref": "git log --oneline"}]})
+    assert e["anchors"][0]["type"] == "query"

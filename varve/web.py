@@ -61,7 +61,11 @@ def _render(root):
         # the page — with a traceback (second review, 2026-08-23).
         if e.get("kind") == "prediction" and isinstance(e.get("prediction"), dict):
             p = e["prediction"]
-            extra = "<div class=meta>p=%s · resolve by %s · %s</div>" % (
+            # '+=' not '=': an entry can be BOTH a prediction and corrected, and
+            # assigning here dropped the correction banner from the one view
+            # strangers actually read — beliefs() got it right, the public page
+            # did not (third review, 2026-08-23).
+            extra += "<div class=meta>p=%s · resolve by %s · %s</div>" % (
                 html.escape(str(p.get("p"))), html.escape(str(p.get("resolve_by"))),
                 html.escape(str(p.get("statement"))))
         items.append(

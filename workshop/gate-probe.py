@@ -107,19 +107,49 @@ def malformed_prediction(d):
 
 
 def consumers_crash_on_damaged_log(d):
-    """views/web are how a reader inspects a log, including a damaged one."""
-    e = dict(store.read_log(d)[0])
-    e.update(seq=2, id="e000002", prev=e["hash"])
-    e.pop("kind", None)
-    e["hash"] = store.entry_hash(e)
-    store._write(d, e)
-    for name, call in (("views.beliefs", lambda: views.beliefs(d)),
-                       ("views.digest", lambda: views.digest(d, days=30))):
-        try:
-            call()
-        except Exception as exc:
-            return "OPEN", "%s raised %s" % (name, type(exc).__name__)
-    return "CLOSED", "views tolerate a damaged entry"
+    """views/web are how a reader inspects a log, including a damaged one.
+
+    This probe used to write ONE damage shape (a missing 'kind'), watch the
+    views survive it, and report the whole class CLOSED. It was reporting
+    CLOSED on 2026-08-23 while a malformed 'ts' still killed views.digest —
+    a green check asserting more than it tested, which is precisely the
+    disease e000006 caught in verify.yml. Found by external review. Now it
+    walks every shape the gate could never have let through, and names which
+    one broke, because a probe that tests one input must not speak for a
+    class."""
+    shapes = [
+        ("missing kind", lambda e: e.pop("kind", None)),
+        ("malformed ts", lambda e: e.update(ts="NOT-A-TIMESTAMP")),
+        ("non-string ts", lambda e: e.update(ts=20260823)),
+        ("prediction with no payload", lambda e: e.update(kind="prediction")),
+        ("prediction payload not a dict", lambda e: e.update(kind="prediction",
+                                                             prediction="soon")),
+        ("prediction payload missing p", lambda e: e.update(
+            kind="prediction", prediction={"statement": "x", "resolve_by": "2027-01-01"})),
+        ("anchors not a list", lambda e: e.update(anchors="url:https://x")),
+        ("body missing", lambda e: e.pop("body", None)),
+    ]
+    seq, prev = 2, store.read_log(d)[0]["hash"]
+    broken = []
+    for label, damage in shapes:
+        e = dict(store.read_log(d)[0])
+        e.update(seq=seq, id="e%06d" % seq, prev=prev)
+        damage(e)
+        e["hash"] = store.entry_hash(e)
+        store._write(d, e)
+        seq, prev = seq + 1, e["hash"]
+        for name, call in (("views.beliefs", lambda: views.beliefs(d)),
+                           ("views.digest", lambda: views.digest(d, days=30)),
+                           ("views.brier", lambda: views.brier(d)),
+                           ("store.verify", lambda: store.verify(d))):
+            try:
+                call()
+            except Exception as exc:
+                broken.append("%s on %s (%s)" % (name, label, type(exc).__name__))
+    if broken:
+        return "OPEN", "; ".join(broken[:3]) + ("; +%d more" % (len(broken) - 3)
+                                                if len(broken) > 3 else "")
+    return "CLOSED", "views survive all %d damage shapes" % len(shapes)
 
 
 def corrupt_file_unnamed(d):

@@ -1,7 +1,14 @@
 # Publish the notebook's read-only view to GitHub Pages on every push.
 # The page is rendered FROM the log by the same code `varve serve` uses, so
 # the public view can never drift from what the chain actually says — and it
-# refuses to publish a broken chain (verify runs first, and fails the job).
+# it fails the job if `varve verify` fails, which verify runs first.
+#
+# Say the limit, since the previous wording ("refuses to publish a broken
+# chain") is the same overclaim e000006 caught in verify.yml, one mutation
+# removed: verify catches PARTIAL breaks only. A wholly re-chained forgery
+# verifies clean, so this job goes green and publishes the forgery to the
+# public URL with a passing badge. See README.md's threat model; the run
+# index, not this check, is what a rewrite has to get past.
 name: pages
 on:
   push:
