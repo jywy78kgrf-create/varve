@@ -110,6 +110,23 @@ one sin this project cannot afford:
   prevention — recipients promised nothing, and a rewrite is only caught if
   somebody kept a head and checks. Signatures and committed witnesses are
   what upgrade "detectable by luck" to "detectable by design."
+- **Two rules of thumb, learned the hard way in this repo's own notebook:**
+  *append-only is what makes a mistake terminal* — a post-dated entry cannot be
+  removed, so anything that assigns position in history (seq, id, prev, hash,
+  ts) must be assigned by the store, never accepted from an author. And *an
+  archive the suspect can edit is not an archive* — a verifier whose record of
+  past heads lives in the tree it is verifying is amended in the same commit as
+  the rewrite, and reports MATCH forever. Keep witnessed heads outside the
+  writer's reach or don't call them witnesses.
+- **The witness you already have, and its ceiling:** a CI run that verifies the
+  chain records `(run_number, head_sha, timestamp)` in the provider's
+  workflow-run index — outside the repository tree, beneath the writer's code
+  rather than on top of it, so a force-push *orphans* those records rather than
+  erasing them. Say the limits with it: retrievable only until garbage
+  collection (a recovery window, not an archive); it moves the cost of a
+  rewrite from "edit the disk" to "persuade one company to abandon its records";
+  and it is contractual, not cryptographic — one provider, one TOS, worthless
+  the moment the repository goes private or the account is compromised.
 - **Roadmap, in order:** (1) signed chain-head checkpoints, under one
   non-negotiable principle: the agent may *request* attestations but must
   never possess signing capability — keys live where the agent can't reach

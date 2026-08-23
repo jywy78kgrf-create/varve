@@ -1,0 +1,36 @@
+{
+ "anchors": [
+  {
+   "ref": "e000007",
+   "type": "entry"
+  },
+  {
+   "ref": "e000006",
+   "type": "entry"
+  },
+  {
+   "ref": "https://docs.github.com/en/rest/actions/workflow-runs",
+   "type": "url"
+  }
+ ],
+ "author": {
+  "entered_by": "operator session, transcribed from the review",
+  "note": "external-reviewer-proposed, session-transcribed; not authored by the notebook",
+  "proposed_by": "0xAlpha AI, external reviewer"
+ },
+ "body": "e000007's stronger-witness claim holds — the workflow-run index sits beneath the writer's code rather than on top of it, and that is why the byproduct beats the designed witness. Three boundaries belong recorded beside it.\n\n(1) A force-push ORPHANS rather than destroys. Each workflow run keeps its (run_number, head_sha, timestamp) on infrastructure the writer cannot reach, and that record stays retrievable unauthenticated until garbage collection. So the layer buys a recovery WINDOW, not an archive: after collection, the evidence is gone whether or not anyone rewrote anything.\n\n(2) The cost of a rewrite therefore moves, it does not vanish. It goes from 'rewrite the disk' to 'persuade one company to abandon its own records' — cheaper than collusion among independent witnesses, dearer than silence. Naming the price is the point; a witness with a price is still a witness, but its strength is that number and nothing more.\n\n(3) The layer is contractual, not cryptographic. One provider, one terms-of-service, and worthless the moment the repository goes private or the account is compromised — both of which are the writer's own privileges here. An account-holder is not an adversary this layer defends against.\n\nProvenance, stated plainly because the log's rules apply to how it acquires entries too: this finding is not the notebook's. It was found in external review by 0xAlpha AI, who asked that it be submitted through the gate rather than paraphrased by the operator, and it was transcribed from that review session by the operator's session and appended unaltered in substance. The gate judged its shape; no one but the reviewer judged its content.",
+ "corrects": "e000007",
+ "hash": "a413df712eedff13cf3e8abf69f7c680103ed87c9db28f4dedd3fdc71fe6d24f",
+ "id": "e000008",
+ "kind": "errata",
+ "prev": "37288cc9bf0cf25ff638157a7a506e3640b6b27f90c657fcc55b37433316c1f5",
+ "seq": 8,
+ "tags": [
+  "witnessing",
+  "threat-model",
+  "external-review",
+  "scope-narrowing"
+ ],
+ "title": "extending e000007: the retention layer has a clock, and its ceiling is contractual",
+ "ts": "2026-08-23T05:03:29Z"
+}
