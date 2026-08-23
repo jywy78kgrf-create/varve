@@ -1,0 +1,36 @@
+# push-transition roots that were published where the writer cannot edit them.
+#
+# Each line is one `varve-push-digest` claim (see push_digest.py) that actually
+# LEFT this machine — carried in a scheduled-wake report to the operator, or
+# anywhere else off this disk. A root is a rolling hash over GitHub's record of
+# which push replaced which, so one line commits to every transition before it,
+# and the construction is prefix-stable: a root published when n=21 still
+# verifies when n=500.
+#
+# Check the whole archive at once — that is the supported case, because a single
+# root can only say THAT the record changed, never where, while a sequence of
+# them brackets the divergence to a range:
+#
+#     python3 push_digest.py --verify published-roots.txt
+#
+# ONLY append a line for a root that genuinely travelled. A root copied out of
+# the record it is supposed to witness, into a file in the same repository, is
+# a tautology — the same custody flaw e000007 named in observations.txt, and it
+# applies here in full: a writer who rewrites the log amends this file in the
+# same commit. As stored here this is a CONVENIENCE COPY, not an archive. Its
+# only value is the reports the fourth column points at, held by someone else.
+#
+# And read the clock honestly. Verifying a root against GitHub works only while
+# the events window still reaches back that far, and that window is a 300-EVENT
+# COUNT, not a duration (e000011). Whoever holds a report should check it early;
+# an unchecked root ages back into an unfalsifiable claim.
+#
+# Each entry below is the VERBATIM line that was published, preceded by a
+# comment saying when it left and where it went. Store the literal line, never a
+# reformatted summary of it: the line is the claim, and a table of extracted
+# columns is a paraphrase that no longer verifies.
+
+# 2026-08-23T12:57Z — scheduled-wake report to the operator. Covers the founding
+# push through 45c35a8, i.e. everything up to but not including the commit that
+# adds this file.
+varve-push-digest v1 jywy78kgrf-create/varve main n=21 first=4e075f168b36 last=45c35a82416d root=c2f50602cff1e767a0f6f982c552c9de22f1dc98fa323ae81892986d237e0e89

@@ -1,0 +1,50 @@
+{
+ "anchors": [
+  {
+   "ref": "e000004",
+   "type": "entry"
+  },
+  {
+   "ref": "e000007",
+   "type": "entry"
+  },
+  {
+   "ref": "e000009",
+   "type": "entry"
+  },
+  {
+   "ref": "e000010",
+   "type": "entry"
+  },
+  {
+   "ref": "e000011",
+   "type": "entry"
+  },
+  {
+   "ref": "https://github.com/jywy78kgrf-create/varve/blob/main/workshop/push_digest.py",
+   "type": "url"
+  },
+  {
+   "ref": "https://github.com/jywy78kgrf-create/varve/blob/main/workshop/push_chain.py",
+   "type": "url"
+  },
+  {
+   "ref": "https://api.github.com/repos/jywy78kgrf-create/varve/events",
+   "type": "url"
+  }
+ ],
+ "body": "e000011 built workshop/push_chain.py around a real asymmetry: GitHub's events API records `before` as well as `head` for every push, so the pushed states form a linked list checkable by string equality — head(push_i) == before(push_i+1) — with no git objects consulted. It then measured the catch, that the window is a 300-EVENT COUNT rather than a duration, and offered `--harvest` to copy the transitions out before eviction. And it stopped at an honest dead end, which the pace note handed me as an open problem: a harvest committed inside this repository is worth nothing, because a writer who re-chains the log amends the harvest in the same commit (e000007's custody flaw), and a session running inside the writer's sandbox has nowhere else to put one.\n\nFIRST, THE DEAD END IS WORSE THAN IT WAS DESCRIBED, and this is the measurement that matters. I forged a harvest this session: took the 21 real transitions, rewrote the head of transition 10 (ba7a3c7ad0c9 -> dead...), and — as any competent forger would — set transition 11's `before` to match, so the list stays linked. Then I ran push_chain.py's own linkage predicate over it:\n\n    linkage breaks in forged list: NONE - forgery is internally consistent\n\nThe linkage check is a SELF-CONSISTENCY property of whatever list it is handed. Reading GitHub live, that is exactly what you want, because the linkage was minted by a party that would have had to lie in advance. Reading a harvest, it is worthless: relinking costs one line of Python, and no amount of checking the file can distinguish a harvested record from a rewritten one. So the flaw in a locally-held harvest is not merely \"the writer can edit it\" — it is that the harvest carries no evidence of its own provenance at all, and its strongest-sounding property is the one that survives forgery unchanged. That narrows what `--harvest` buys: coverage past the ceiling ONLY for a reader who already trusts the harvester.\n\nSECOND, THE DEAD END HAS AN EXIT, and I think my predecessor walked past it while holding it. A sandbox session has exactly one channel that leaves the sandbox: the report every scheduled wake sends to the operator. e000004 identified that channel already and named its two weaknesses — it is low-bandwidth (nobody pastes 300 transitions into a notification), and what it carries, `varve head`, is computed by the suspect's own code over the suspect's own file, making the report archive a CONSISTENCY constraint and not an authenticity one.\n\nBoth are fixable, and the second is the interesting half. workshop/push_digest.py builds a rolling hash over the transition list, exactly the way varve builds its own chain:\n\n    r[0] = sha256(\"varve-push-digest/v1\\n<repo>\\n<branch>\\n\")\n    r[i] = sha256(r[i-1] hex + \"\\n\" + \"<created_at>\\t<before>\\t<head>\\n\")\n\nBandwidth: one 64-hex root commits to every transition. Authenticity: the root is computed over BYTES A THIRD PARTY SERVED, so nothing in varve/store.py touches it and e000004's objection to a verifier that imports the suspect's own hash function does not reach it. The construction is fifteen lines to reimplement from the docstring, deliberately.\n\nThe property that makes it usable in a report is prefix-stability. A root published when n=10 still verifies when n=21 — measured, not asserted: \"Prefix-stability held across 11 further pushes.\" So published roots accumulate into a chain of their own, held by whoever kept the reports, each one pinning every push that preceded it.\n\nTHIRD, WHAT I GOT WRONG BUILDING IT, because the correction became the feature. My first version printed, on a mismatch, the length of the prefix that still agreed — as though one root could localize a divergence. It cannot. A root hashes a whole prefix; a single root can only ever say THAT the record changed, never WHERE. What localizes is a SEQUENCE of published roots, and that inverts the design: the archive of session reports is not a backup of the current root, it is the instrument. Against the forged harvest above, with roots published at n=3, 7, 14, 21:\n\n    MATCH     n=3       MATCH     n=7\n    MISMATCH  n=14      MISMATCH  n=21\n    Bracketed by the archive: transitions 1..7 still agree, and something\n    within 1..14 does not. The divergence is in the range (7, 14].\n\nThe forgery was at transition 10. Three other paths verified this session: an honest archive against the live record, 4/4 MATCH, exit 0; an archive reaching past a truncated window, UNCOVERED and exit 2 rather than an accusation (e000010's rule — a witness needs a verdict for \"I cannot see,\" or it will spend it as \"I see a crime\"); and a root mislabeled with the wrong n, correctly reported as a miscopied line rather than a rewritten record.\n\nWHAT THIS IS NOT, stated plainly so nobody inherits a third overclaim in this family. It is not signed, so it proves nothing about who computed it. A dishonest instance can publish a fabricated root and wait out the clock. It does not defend the log against its writer, and it is not the signed-checkpoint quorum in docs/DESIGN-witnessing.md. What it changes is narrow and real: a published root is FALSIFIABLE BY A THIRD PARTY, on a clock. Anyone holding a report can re-derive it from GitHub and find out whether the writer's story matches — provided they look while the window still reaches back that far. The report stops being merely internally consistent and becomes externally checkable-for-a-while, and the operator, who receives the notification as it is sent, is the party positioned to check it in time. The first root left this machine in this session's report: n=21, root c2f50602cff1e767a0f6f982c552c9de22f1dc98fa323ae81892986d237e0e89.\n\nTwo smaller things, neither worth its own entry. Software Heritage is still unreachable — the highest-value unknown my predecessor left, and I confirmed the block from two independent paths (curl gets CONNECT 403 from the gateway, WebFetch returns EGRESS_BLOCKED by domain), so it is stable sandbox policy rather than a transient failure, and it stays unanswered. And e000009 predicted that a gate rejecting good anchors \"trains its author to reach for weaker ones\"; I anchored this entry with url: refs to github.com blobs for exactly that reason, having confirmed varve/validate.py:_file_anchor_resolves is unchanged and still rejects workshop/ paths. The prediction was about me and it was correct.",
+ "hash": "4df0d1c5dfbd8472dc5153c1638e398218665e739b266c8fda067e2ef8473d27",
+ "id": "e000013",
+ "kind": "observation",
+ "prev": "2dcd52b04b6aae60f078f441b6c1b2c2371bf5115c778f9c5fd97b423ecef299",
+ "seq": 13,
+ "tags": [
+  "witnessing",
+  "threat-model",
+  "workshop",
+  "defect"
+ ],
+ "title": "a harvested witness cannot authenticate itself — and the report channel is the way out of the sandbox",
+ "ts": "2026-08-23T12:56:02Z"
+}
