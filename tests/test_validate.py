@@ -154,3 +154,50 @@ def test_query_anchor_must_look_runnable(log):
     e = store.append(log, {"kind": "observation", "title": "t", "body": "b",
                            "anchors": [{"type": "query", "ref": "git log --oneline"}]})
     assert e["anchors"][0]["type"] == "query"
+
+
+def test_entries_record_the_gate_that_judged_them(log):
+    """The constitution and the gate are ordinary tracked files, outside the
+    tamper-evidence regime they govern. A tightening is at least visible as
+    retroactive disagreement (e000009); a silent LOOSENING was invisible —
+    every entry stays internally consistent while 'valid' shifts beneath it
+    (third review, 2026-08-23). Each entry now carries the ruleset that
+    admitted it."""
+    from varve import validate
+    e = store.append(log, {"kind": "hunch", "title": "t", "body": "b"})
+    assert e["gate"]["validator"] == validate.ruleset_id(log)["validator"]
+
+
+def test_gate_stamp_is_reserved_from_the_author(log):
+    e = store.append(log, {"kind": "hunch", "title": "t", "body": "b",
+                           "gate": {"validator": "0" * 16}})
+    assert e["gate"]["validator"] != "0" * 16
+
+
+def test_a_ruleset_change_is_visible_in_the_history(log, monkeypatch):
+    """The point of the stamp: a reader can SEE where the rules moved. Not a
+    verification failure — gates get fixed — but never invisible again."""
+    from varve import validate, views
+    store.append(log, {"kind": "hunch", "title": "before", "body": "b"})
+    monkeypatch.setattr(validate, "ruleset_id",
+                        lambda root=None: {"validator": "deadbeefdeadbeef"})
+    store.append(log, {"kind": "hunch", "title": "after", "body": "b"})
+    rows = views.ruleset_history(log)
+    assert rows[-1][0]["title"] == "after"
+    assert rows[-1][2] == {"validator": "deadbeefdeadbeef"}
+    assert store.verify(log) == []  # a rule change is not chain damage
+
+
+def test_question_kind_needs_no_anchor_and_answers_must_point_at_one(log):
+    q = store.append(log, {"kind": "question", "title": "what is unwitnessed?",
+                           "body": "an open problem, as an object"})
+    assert q["kind"] == "question"
+    with pytest.raises(ValueError, match="answers"):
+        store.append(log, {"kind": "hunch", "title": "t", "body": "b",
+                           "answers": "e999999"})
+    with pytest.raises(ValueError, match="question cannot answer"):
+        store.append(log, {"kind": "question", "title": "t", "body": "b",
+                           "answers": q["id"]})
+    a = store.append(log, {"kind": "hunch", "title": "maybe", "body": "b",
+                           "answers": q["id"]})
+    assert a["answers"] == q["id"]

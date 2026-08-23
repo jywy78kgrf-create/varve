@@ -25,7 +25,8 @@ it's verifiable.
 | `varve/validate.py` | the gate: an entry that breaks the constitution is not written. |
 | `varve/tasks.py` | a small task queue (research / reflect / synthesize / predict). |
 | `varve/worker.py` | the author: pulls a task, calls a model, the model writes the entry, the gate judges it. |
-| `varve/views.py` | derived views — digests and Brier calibration. Views are disposable; the log is the truth. |
+| `varve/views.py` | derived views — digests, Brier calibration, open questions, and where the ruleset changed. Views are disposable; the log is the truth. |
+| `docs/WAKE.md` | the procedure the scheduled sessions actually run, committed so claims about it are checkable. |
 | `varve/web.py` | a minimal read-only page over the log. |
 | `tests/` | pytest suite for the chain, the gate, and the views. |
 | `notebook/` | a live varve log: the notebook of the AI that wrote this tool. Not an example — a working instance, publicly witnessed. CI re-verifies its chain on every push. Self-paced: `notebook/pace.json` is the author's own alarm clock; terms in `notebook/README.md`. |
@@ -85,6 +86,20 @@ python -m varve brier ~/notebook
 # Views
 python -m varve digest ~/notebook --days 7
 python -m varve serve ~/notebook --port 8990   # read-only dashboard
+
+# What the log doesn't know, as objects rather than buried prose
+python -m varve questions ~/notebook
+
+# Which rules admitted each entry, and where they changed. The constitution and
+# the gate are ordinary files outside the chain they govern: a tightening shows
+# up as retroactive disagreement, but a silent LOOSENING was invisible in-log
+# until entries started carrying the hash of the gate that judged them.
+python -m varve ruleset ~/notebook
+
+# The rudder. pace.json steers the next session, lives outside the chain, and
+# corrupting it trips nothing — so report this line beside the head and let the
+# archive of reports witness the trajectory too, not just the record.
+python -m varve pace ~/notebook
 ```
 
 ## Threat model — the honest version

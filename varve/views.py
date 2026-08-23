@@ -24,7 +24,7 @@ def _parse_ts(ts):
         return None
 
 
-def digest(root, days=7):
+def digest(root, days=7, limit=700):
     """A 'while you were away' summary of the recent window, as plain text."""
     entries = store.read_log(root)
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
@@ -46,8 +46,18 @@ def digest(root, days=7):
         stamp = ts[:10] if isinstance(ts, str) and _parse_ts(ts) else "!! BAD TS %r" % (ts,)
         lines.append("%s %s [%s] %s" % (
             e.get("id", "?"), stamp, e.get("kind", "?"), e.get("title", "")))
-        body = str(e.get("body", "")).strip().replace("\n", " ")
-        lines.append("  " + (body[:200] + "…" if len(body) > 200 else body))
+        # 200 characters rendered a 1000-word entry as noise, in the very view
+        # designated for a reader with no memory of the author (rule 6, third
+        # review). Lead with the first paragraph, which is where these entries
+        # actually put their claim, and cap generously.
+        body = str(e.get("body", "")).strip()
+        lead = body.split("\n\n")[0].replace("\n", " ").strip()
+        if len(lead) > limit:
+            lead = lead[:limit].rsplit(" ", 1)[0] + "…"
+        rest = len(body.split()) - len(lead.split())
+        if rest > 0:
+            lead += " […%d more words]" % rest
+        lines.append("  " + lead)
         anchors = e.get("anchors")
         if anchors:
             # Render whatever is there. A gate-passed entry always has a list of
@@ -133,3 +143,40 @@ def brier(root):
         return None, 0, []
     score = sum(s for _, _, s in rows) / len(rows)
     return score, len(rows), rows
+
+
+def ruleset_history(root):
+    """Every point in the log where the admitting ruleset changed.
+
+    Rows of (entry, previous_gate, gate). Entries written before the stamp
+    existed report None, which is honest: nobody knows what judged them.
+    A change here is not chain damage — gates get fixed — so verify() does not
+    fail on it. It is something a reader must be able to SEE.
+    """
+    # Sentinel, not None: "unstamped" IS a ruleset state — the 14 entries
+    # written before the stamp existed genuinely have no record of what judged
+    # them, and reporting zero states would hide exactly that.
+    rows, prev = [], object()
+    for e in store.read_log(root):
+        gate = e.get("gate")
+        if gate != prev:
+            rows.append((e, prev, gate))
+            prev = gate
+    return rows
+
+
+def questions(root):
+    """Open problems as objects, not prose.
+
+    Rows of (question entry, [ids of entries that answer it]). An empty list
+    means open. Rule 6 asks that a reader with no memory of the author be able
+    to pick up the work; until this existed, the only way to find out what the
+    log did not know was to read every body in full.
+    """
+    entries = store.read_log(root)
+    answered = {}
+    for e in entries:
+        if e.get("answers"):
+            answered.setdefault(e["answers"], []).append(e["id"])
+    return [(e, answered.get(e["id"], []))
+            for e in entries if e.get("kind") == "question"]

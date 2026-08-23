@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 
-from . import store, tasks, views
+from . import store, tasks, validate, views
 
 
 def _parse_anchor(s):
@@ -43,6 +43,16 @@ def main(argv=None):
     p = sub.add_parser("head", help="print the chain head (seq + hash) — witness this externally")
     p.add_argument("root")
 
+    p = sub.add_parser("ruleset", help="the rules each entry was admitted under, and where they changed")
+    p.add_argument("root")
+
+    p = sub.add_parser("questions", help="open problems the log has recorded, and what answered them")
+    p.add_argument("root")
+    p.add_argument("--all", action="store_true", help="include answered ones")
+
+    p = sub.add_parser("pace", help="the pace file's next-wake and hash — report this beside the head")
+    p.add_argument("root")
+
     p = sub.add_parser("beliefs", help="claim-bearing entries with standing (corrected-by aware)")
     p.add_argument("root")
 
@@ -74,6 +84,39 @@ def main(argv=None):
     p.add_argument("--bind", default="127.0.0.1")
 
     args = ap.parse_args(argv)
+
+    if args.cmd == "ruleset":
+        current = validate.ruleset_id(args.root)
+        print("current: " + "  ".join("%s=%s" % kv for kv in sorted(current.items())))
+        rows = views.ruleset_history(args.root)
+        print("\n%d ruleset state(s) across the log:" % len(rows))
+        for e, prev, gate in rows:
+            shown = "  ".join("%s=%s" % kv for kv in sorted((gate or {}).items())) or "(unstamped)"
+            print("  from %s (%s): %s" % (e.get("id"), e.get("ts", "?")[:10], shown))
+        if len(rows) > 1:
+            print("\nA change is not chain damage — gates get fixed. It is something\n"
+                  "a reader must be able to see, which is the whole point of the stamp.")
+        return 0
+
+    if args.cmd == "questions":
+        rows = views.questions(args.root)
+        if not rows:
+            print("no question entries in this log")
+            return 0
+        for e, answers in rows:
+            if answers and not args.all:
+                continue
+            mark = ("answered by " + ", ".join(answers)) if answers else "OPEN"
+            print("%s [%s] %s" % (e["id"], mark, e.get("title", "")))
+        return 0
+
+    if args.cmd == "pace":
+        got = store.pace_id(args.root)
+        if not got:
+            print("no pace.json at %s" % args.root)
+            return 1
+        print("pace next=%s sha256=%s" % got)
+        return 0
 
     if args.cmd == "init":
         entry = store.init(args.root, note=args.note)

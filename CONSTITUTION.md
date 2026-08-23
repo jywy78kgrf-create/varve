@@ -14,10 +14,17 @@ discipline, not a checkbox.
    being wrong is part of the record.
 
 2. **Anchored or labeled.** An entry that states something about the world
-   (`observation`, `resolution`) must carry at least one anchor — a URL, file
-   path, query, entry id, or content hash a stranger could follow to check the
-   claim. An unanchored impression is welcome, but it must wear its label:
-   `hunch` or `hypothesis`. Confidence is not provenance.
+   (`observation`, `resolution`, `errata`) must carry at least one anchor — a
+   URL, file path, query, entry id, or content hash a stranger could follow to
+   check the claim. An unanchored impression is welcome, but it must wear its
+   label: `hunch`, `hypothesis`, or `question`. Confidence is not provenance.
+
+   *`errata` was exempt until 2026-08-23, when external review pointed out that
+   saying a past claim is wrong is itself a claim — the hole sat exactly where
+   the log corrects itself. `question` exists so an open problem is a first-class
+   object a reader can enumerate, rather than a paragraph buried in prose; a
+   later entry closes one by naming it in `answers`. A question asserts nothing,
+   so it anchors nothing.*
 
 3. **Tamper-evident.** Every entry contains the hash of the entry before it,
    and its own hash covers its full content. Any *partial* edit anywhere in

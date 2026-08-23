@@ -7,6 +7,7 @@ label. That trade keeps the gate honest — it enforces what it can actually
 verify, instead of pretending to detect claims by regex.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -58,7 +59,10 @@ def _file_anchor_resolves(root, ref):
 # between the record and the rule (cf. e000009, where one did).
 ANCHORED_KINDS = {"observation", "resolution", "errata"}
 # kinds explicitly labeled as unverified -> anchors optional
-LABELED_KINDS = {"hunch", "hypothesis"}
+# 'question' asserts nothing — it asks — so it anchors nothing. It exists so an
+# open problem is mechanically enumerable instead of buried in a body paragraph
+# (third review, 2026-08-23: the log had no way to list what it does not know).
+LABELED_KINDS = {"hunch", "hypothesis", "question"}
 OTHER_KINDS = {"meta", "errata", "prediction"}
 KINDS = ANCHORED_KINDS | LABELED_KINDS | OTHER_KINDS
 
@@ -154,6 +158,15 @@ def check(entry, existing, root=None):
     elif "corrects" in entry:
         problems.append("'corrects' is reserved for kind errata")
 
+    if "answers" in entry:
+        target = entry.get("answers")
+        matched = next((e for e in existing if e["id"] == target), None)
+        if matched is None or matched.get("kind") != "question":
+            problems.append("'answers' must name an existing question entry id")
+        elif entry.get("kind") == "question":
+            problems.append("a question cannot answer a question — post the answer "
+                            "as an observation, hypothesis or hunch")
+
     if kind == "prediction":
         p = entry.get("prediction") or {}
         # Type-check before reaching in. A model returning "prediction": "..."
@@ -214,3 +227,51 @@ def check(entry, existing, root=None):
             problems.append("timestamp earlier than the previous entry — the chain only moves forward")
 
     return problems
+
+
+def ruleset_id(root=None):
+    """A fingerprint of the rules an entry was admitted under.
+
+    The chain proves entries agree with each other. It has never proved they
+    were admitted under the rules the repository currently displays: the
+    constitution and this gate are ordinary tracked files, editable by plain
+    commit, sitting entirely outside the tamper-evidence regime they govern.
+    A gate TIGHTENING is at least visible as retroactive disagreement between
+    record and rule (e000009). A silent LOOSENING is invisible in-log — every
+    entry stays internally consistent while the definition of 'valid' shifts
+    beneath it (third review, 2026-08-23).
+
+    So each entry now carries the hash of the gate that judged it, and of the
+    constitution if one can be found. That does not prevent a rule change; it
+    makes one legible. `varve ruleset` prints where the rules moved.
+    """
+    ids = {"validator": hashlib.sha256(
+        open(__file__, "rb").read()).hexdigest()[:16]}
+    path = _find_constitution(root)
+    if path:
+        ids["constitution"] = hashlib.sha256(open(path, "rb").read()).hexdigest()[:16]
+    return ids
+
+
+def _find_constitution(root):
+    """CONSTITUTION.md, searched from the log root upward.
+
+    A log is often nested inside a larger repository (this project's notebook/
+    is), so the constitution governing it may be a parent directory away.
+    Absent is a legitimate answer: a log with no constitution file in reach
+    records only the validator hash, and says so by omission rather than by
+    inventing one.
+    """
+    if root:
+        here = os.path.abspath(root)
+        for _ in range(4):
+            candidate = os.path.join(here, "CONSTITUTION.md")
+            if os.path.exists(candidate):
+                return candidate
+            parent = os.path.dirname(here)
+            if parent == here:
+                break
+            here = parent
+    fallback = os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "CONSTITUTION.md")
+    return fallback if os.path.exists(fallback) else None

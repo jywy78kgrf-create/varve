@@ -94,6 +94,7 @@ def init(root, note=""):
         "tags": ["founding"],
         "prev": "",
     }
+    founding["gate"] = validate.ruleset_id(root)
     founding["hash"] = entry_hash(founding)
     _write(root, founding)
     return founding
@@ -119,13 +120,16 @@ def append(root, fields):
     # that the untrusted path. A post-dated entry is then permanent: rule 1
     # forbids removing it, and no later entry may carry an earlier timestamp,
     # so one future date jams the log for good (second review, 2026-08-23).
-    for reserved in ("seq", "id", "prev", "hash", "ts"):
+    # 'gate' joins the reserved set for the same reason as the rest: the rules
+    # an entry was admitted under are not the author's to declare.
+    for reserved in ("seq", "id", "prev", "hash", "ts", "gate"):
         entry.pop(reserved, None)
     entry["seq"] = last["seq"] + 1
     entry["id"] = "e%06d" % entry["seq"]
     entry["ts"] = now_iso()
     entry.setdefault("anchors", [])
     entry.setdefault("tags", [])
+    entry["gate"] = validate.ruleset_id(root)
     entry["prev"] = last["hash"]
 
     problems = validate.check(entry, entries, root=root)
@@ -214,3 +218,29 @@ def verify(root, expect_head=None):
             "truncated tail or forked history" % (entries[-1].get("hash", "")[:12], expect_head[:12])
         )
     return problems
+
+
+def pace_id(root):
+    """(next, sha256-prefix) of the log's pace file, or None if there isn't one.
+
+    Why a log-integrity tool cares about an operational scratch file: in
+    practice the 'hold' field steers what the next session does, which makes it
+    this project's executive function — and it sits outside the chain, unhashed,
+    where corrupting it trips nothing. An adversary editing history faces every
+    witness; an adversary editing the hold faces json.load (third review,
+    2026-08-23).
+
+    This does not put the hold in the chain — it stays deliberately mutable,
+    and material holds should graduate into entries. It makes the hold's hash
+    cheap to carry in the same report that already carries the head, so the
+    archive of reports witnesses the trajectory as well as the record.
+    """
+    path = os.path.join(root, "pace.json")
+    if not os.path.exists(path):
+        return None
+    raw = open(path, "rb").read()
+    try:
+        nxt = json.loads(raw).get("next")
+    except (ValueError, TypeError):
+        nxt = "(unparseable)"
+    return nxt, hashlib.sha256(raw).hexdigest()[:16]

@@ -134,3 +134,40 @@ def test_digest_survives_malformed_anchors(log):
     from varve import views
     _damaged(log, anchors="url:https://x")
     assert "MALFORMED anchors" in views.digest(log, days=30)
+
+
+def test_questions_lists_open_problems(log):
+    from varve import store, views
+    q1 = store.append(log, {"kind": "question", "title": "open one", "body": "b"})
+    q2 = store.append(log, {"kind": "question", "title": "closed one", "body": "b"})
+    store.append(log, {"kind": "hunch", "title": "answer", "body": "b", "answers": q2["id"]})
+    rows = dict((e["id"], ans) for e, ans in views.questions(log))
+    assert rows[q1["id"]] == []
+    assert rows[q2["id"]] == [store.read_log(log)[-1]["id"]]
+
+
+def test_digest_leads_with_the_claim_and_says_what_it_cut(log):
+    """200 characters rendered a 1000-word entry as noise in the one view meant
+    for a reader with no memory of the author (rule 6, third review)."""
+    from varve import store, views
+    body = "The claim, stated first.\n\n" + ("filler " * 400).strip()
+    store.append(log, {"kind": "hunch", "title": "long", "body": body})
+    out = views.digest(log, days=30)
+    assert "The claim, stated first." in out
+    assert "more words]" in out
+
+
+def test_pace_id_reports_the_rudder(log, tmp_path):
+    """The hold steers the next session, sits outside the chain, and corrupting
+    it trips nothing. Hashing it costs one line in a report that already
+    carries the head (third review)."""
+    import json, os
+    from varve import store
+    assert store.pace_id(log) is None
+    json.dump({"next": "2026-09-01T00:00:00Z", "hold": "x"},
+              open(os.path.join(log, "pace.json"), "w"))
+    nxt, digest = store.pace_id(log)
+    assert nxt == "2026-09-01T00:00:00Z" and len(digest) == 16
+    json.dump({"next": "2026-09-01T00:00:00Z", "hold": "TAMPERED"},
+              open(os.path.join(log, "pace.json"), "w"))
+    assert store.pace_id(log)[1] != digest
