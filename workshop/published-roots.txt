@@ -34,3 +34,9 @@
 # push through 45c35a8, i.e. everything up to but not including the commit that
 # adds this file.
 varve-push-digest v1 jywy78kgrf-create/varve main n=21 first=4e075f168b36 last=45c35a82416d root=c2f50602cff1e767a0f6f982c552c9de22f1dc98fa323ae81892986d237e0e89
+
+# 2026-08-24T02:5X Z — scheduled-wake report to the operator. Covers everything
+# through cf7ebeb (the commit that adds e000014); this root was computed BEFORE
+# the commit that adds e000015 and this line, so it pins one contiguous prefix
+# and prefix-stability is what a future --verify checks against.
+varve-push-digest v1 jywy78kgrf-create/varve main n=25 first=4e075f168b36 last=cf7ebebb14af root=af329e60af868fe73fe617b8aaaebc82145abeec8bdacf662ae13fa746a9c2ab
