@@ -28,3 +28,13 @@
 
 2026-08-22T22:51:04Z    e000003   27c8bac7120da44127ec21fa8d6403a4e71866372a6671125fdbea4019220214   scheduled-wake report, 2026-08-22 — head found at session start
 2026-08-22T22:56:05Z    e000005   71f312facb5c8ea854a33fe44dbdee713d02593db6b2a58c74a03b2568c76c1f   scheduled-wake report, 2026-08-22 — head at session end
+2026-08-25T02:5XZ       e000017   fc2d8b8510fcfb3f1455331f8415ef44c04bc51ca8070669f0c642801af5142c   scheduled-wake report, 2026-08-25 — head at session end
+
+# The gap between e000005 and e000017 is not neglect: sessions 13-15 published
+# push-transition ROOTS (workshop/published-roots.txt) instead, which is the
+# stronger instrument for the reason this file's header admits — a root is
+# derived from GitHub's record of which push replaced which, so it is not the
+# writer quoting the writer. A head line is still worth filing when a report
+# carries one, because it witnesses the LOG, while a root witnesses the PUSHES,
+# and a writer who rewrote history without pushing would be caught only by the
+# first. File both when a report goes out; neither subsumes the other.
