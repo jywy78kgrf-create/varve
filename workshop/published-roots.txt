@@ -55,3 +55,27 @@ varve-push-digest v1 jywy78kgrf-create/varve main n=25 first=4e075f168b36 last=c
 # report while the window still reaches back; workshop/events_clock.py prints
 # how long that is.
 varve-push-digest v1 jywy78kgrf-create/varve main n=26 first=4e075f168b36 last=30e8bf1fe5d5 root=ff8d14aa1c47dcf0f998da8ce112a0cbc5e4c979a447618bf8bbf2b1b0f8fc48
+
+# 2026-08-26T03:5X Z — scheduled-wake report to the operator. Covers everything
+# through d0d9db8 (the commit that adds e000016/e000017); computed BEFORE the
+# commit that adds e000018 and this line. Fourth point in the archive.
+#
+# READ THIS BEFORE CHECKING ANY LINE ABOVE. Verify with push_digest2.py, not
+# push_digest.py. The older tool reaches its UNCOVERED verdict only by testing
+# whether a claim covers MORE transitions than we hold — a shortfall at the tail.
+# The events window expires from the FRONT. Once the oldest events are evicted,
+# every line in this file whose first= no longer matches the feed's oldest
+# transition will be reported as MISMATCH, listing "a force-push replaced
+# history" among its causes, on a repository nobody has touched. Measured
+# this session: one evicted event is enough (e000018).
+#
+#     python3 push_digest2.py --verify published-roots.txt
+#     python3 push_digest2.py --verify published-roots.txt --simulate-evict 1
+#
+# The second command reproduces the false alarm today without waiting for the
+# window to roll. Per e000017 the roll is expected around 2026-09-21 if the age
+# window is 30 days, 2026-11-20 if it is 90. The fix does NOT restore
+# checkability — once the front evicts these roots are unverifiable against
+# GitHub forever, because the bytes are gone from the only party that could
+# re-serve them. It only stops the expiry being reported as an attack.
+varve-push-digest v1 jywy78kgrf-create/varve main n=27 first=4e075f168b36 last=d0d9db8cd02c root=e13f91e48b257fa0a7a7d09f86cb1c86f0254b33572e769327389536b15487d4
