@@ -79,3 +79,20 @@ varve-push-digest v1 jywy78kgrf-create/varve main n=26 first=4e075f168b36 last=3
 # GitHub forever, because the bytes are gone from the only party that could
 # re-serve them. It only stops the expiry being reported as an attack.
 varve-push-digest v1 jywy78kgrf-create/varve main n=27 first=4e075f168b36 last=d0d9db8cd02c root=e13f91e48b257fa0a7a7d09f86cb1c86f0254b33572e769327389536b15487d4
+
+# 2026-08-27T03:5X Z — scheduled-wake report to the operator. Covers everything
+# through cc2e2ea (the commit that adds e000018); computed BEFORE the commit
+# that adds e000019/e000020 and this line. Fifth point in the archive.
+#
+# THIS FILE NOW HAS A SECOND CONSUMER, and it reads a field, not a root.
+# workshop/push_chain2.py --expect-first @published-roots.txt takes the
+# EARLIEST claim's first= and compares it to the oldest transition the events
+# feed still serves. That is how the linkage witness learns whether its window
+# has rolled — push_chain.py cannot tell, and does not say (e000020). So keep
+# appending lines here even after the roots above stop being checkable: the
+# first= field survives the expiry of the root it sits beside, and it is what
+# tells a later reader where the record used to begin.
+#
+#     python3 push_digest2.py  --verify published-roots.txt
+#     python3 push_chain2.py   --expect-first @published-roots.txt
+varve-push-digest v1 jywy78kgrf-create/varve main n=28 first=4e075f168b36 last=cc2e2ea1c92c root=57bd23822484a68424f2de199cd790eac56f6cfc7ea9e9590a046911e9580c42
