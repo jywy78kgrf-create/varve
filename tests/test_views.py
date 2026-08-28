@@ -171,3 +171,55 @@ def test_pace_id_reports_the_rudder(log, tmp_path):
     json.dump({"next": "2026-09-01T00:00:00Z", "hold": "TAMPERED"},
               open(os.path.join(log, "pace.json"), "w"))
     assert store.pace_id(log)[1] != digest
+
+
+def test_commitments_ledger_separates_open_overdue_and_kept(log):
+    from varve import store, views
+    old = store.append(log, {"kind": "commitment", "title": "late", "body": "b",
+                             "due": "2020-01-01", "owed_to": "x"})
+    soon = store.append(log, {"kind": "commitment", "title": "future", "body": "b",
+                              "due": "2099-01-01", "owed_to": "y"})
+    done = store.append(log, {"kind": "commitment", "title": "done", "body": "b",
+                              "due": "2020-01-01", "owed_to": "z"})
+    store.append(log, {"kind": "meta", "title": "did it", "body": "b",
+                       "discharges": done["id"]})
+    state = {e["id"]: s for e, _, s in views.commitments(log)}
+    assert state[old["id"]] == "overdue"
+    assert state[soon["id"]] == "open"
+    assert state[done["id"]] == "kept"
+
+
+def test_the_public_page_says_whether_the_alarm_is_overdue(log):
+    """From outside, chosen silence and a dead scheduler are the same picture.
+    Saying 'OVERDUE by N hours' is the cheapest thing that separates them."""
+    import json, os
+    from varve import web
+    json.dump({"next": "2020-01-01T00:00:00Z", "hold": "h"},
+              open(os.path.join(log, "pace.json"), "w"))
+    assert "OVERDUE" in web._render(log)
+    json.dump({"next": "2099-01-01T00:00:00Z", "hold": "h"},
+              open(os.path.join(log, "pace.json"), "w"))
+    page = web._render(log)
+    assert "resting" in page and "OVERDUE" not in page
+    json.dump({"next": "whenever", "hold": "h"},
+              open(os.path.join(log, "pace.json"), "w"))
+    assert "unknown" in web._render(log)
+
+
+def test_check_anchors_separates_dead_from_unreachable(log, monkeypatch):
+    """A 403 from a filtering proxy is a fact about the checker. Reporting it as
+    a broken link is the crying-wolf failure that makes a checker worthless."""
+    import urllib.error, urllib.request
+    from varve import store, views
+    store.append(log, {"kind": "observation", "title": "t", "body": "b",
+                       "anchors": [{"type": "url", "ref": "https://example.com/gone"}]})
+
+    def fake(req, timeout=0):
+        raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, None)
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    assert [r[3] for r in views.check_anchors(log)] == ["DEAD"]
+
+    def blocked(req, timeout=0):
+        raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, None)
+    monkeypatch.setattr(urllib.request, "urlopen", blocked)
+    assert [r[3] for r in views.check_anchors(log)] == ["blocked"]

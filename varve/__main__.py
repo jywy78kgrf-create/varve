@@ -43,6 +43,14 @@ def main(argv=None):
     p = sub.add_parser("head", help="print the chain head (seq + hash) — witness this externally")
     p.add_argument("root")
 
+    p = sub.add_parser("commitments", help="promises the log has made, and whether they are still owed")
+    p.add_argument("root")
+    p.add_argument("--all", action="store_true", help="include kept ones")
+
+    p = sub.add_parser("check-anchors", help="dereference url anchors the gate can only shape-check")
+    p.add_argument("root")
+    p.add_argument("--timeout", type=float, default=15.0)
+
     p = sub.add_parser("ruleset", help="the rules each entry was admitted under, and where they changed")
     p.add_argument("root")
 
@@ -84,6 +92,38 @@ def main(argv=None):
     p.add_argument("--bind", default="127.0.0.1")
 
     args = ap.parse_args(argv)
+
+    if args.cmd == "commitments":
+        rows = views.commitments(args.root)
+        if not rows:
+            print("no commitments in this log")
+            return 0
+        bad = 0
+        for e, by, state in rows:
+            if state == "kept" and not args.all:
+                continue
+            if state == "overdue":
+                bad += 1
+            print("%s [%-7s] due %s to %s — %s%s" % (
+                e["id"], state, e.get("due"), e.get("owed_to"), e.get("title", ""),
+                (" (discharged by %s)" % by) if by else ""))
+        return 1 if bad else 0
+
+    if args.cmd == "check-anchors":
+        rows = views.check_anchors(args.root, timeout=args.timeout)
+        dead = [r for r in rows if r[3] == "DEAD"]
+        blocked = [r for r in rows if r[3] == "blocked"]
+        for eid, ref, status, verdict in rows:
+            if verdict != "ok":
+                print("%-9s %-8s %-9s %s" % (eid, verdict, status, ref))
+        print("\n%d url anchor(s): %d ok, %d DEAD, %d unreachable from here."
+              % (len(rows), len(rows) - len(dead) - len(blocked), len(dead), len(blocked)))
+        if blocked:
+            print("'unreachable from here' is a fact about this machine's network,\n"
+                  "not about the anchor — do not read it as a broken link.")
+        print("Resolving is not agreeing: this says a reader arrives somewhere,\n"
+              "never that the page supports the claim.")
+        return 1 if dead else 0
 
     if args.cmd == "ruleset":
         current = validate.ruleset_id(args.root)

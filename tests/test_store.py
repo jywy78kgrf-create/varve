@@ -104,3 +104,46 @@ def test_seq_numeric_ordering():
     names = [(int(store._SEQ_RE.match(n).group(1)), n)
              for n in ["1000000.json", "999999.json"]]
     assert [n for _, n in sorted(names)] == ["999999.json", "1000000.json"]
+
+
+def test_concurrent_appends_do_not_lose_writes(log):
+    """Two sessions can be awake at once — the terms bless an operator knock
+    landing during a scheduled wake — and append() reads the head then writes
+    its successor. Without a lock both see the same head and one dies."""
+    import multiprocessing as mp
+
+    def w(root, n, q):
+        ok = 0
+        for i in range(n):
+            try:
+                store.append(root, {"kind": "hunch", "title": "%d-%d" % (os.getpid(), i),
+                                    "body": "b"})
+                ok += 1
+            except ValueError:
+                pass
+        q.put(ok)
+
+    import os
+    q = mp.Queue()
+    procs = [mp.Process(target=w, args=(log, 6, q)) for _ in range(3)]
+    for p in procs:
+        p.start()
+    for p in procs:
+        p.join()
+    assert sum(q.get() for _ in procs) == 18
+    entries = store.read_log(log)
+    assert len(entries) == 19
+    assert [e["seq"] for e in entries] == list(range(1, 20))
+    assert store.verify(log) == []
+
+
+def test_a_stale_lock_does_not_silence_successors(log):
+    """A session killed mid-append must not jam the log forever — the same
+    reasoning that made a post-dated entry a permanent jam worth fixing."""
+    import os, time
+    lock = os.path.join(log, ".append.lock")
+    os.mkdir(lock)
+    os.utime(lock, (time.time() - 10000, time.time() - 10000))
+    e = store.append(log, {"kind": "hunch", "title": "after a crash", "body": "b"})
+    assert e["title"] == "after a crash"
+    assert not os.path.exists(lock)

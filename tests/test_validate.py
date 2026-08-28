@@ -225,3 +225,31 @@ def test_a_survey_is_a_belief_and_can_be_corrected(log):
                        "corrects": s["id"],
                        "anchors": [{"type": "entry", "ref": s["id"]}]})
     assert any(e["id"] == s["id"] and status.startswith("corrected") for e, status in views.beliefs(log))
+
+
+def test_commitment_must_name_what_is_owed_and_by_when(log):
+    """A promise made in one session and forgotten in the next is the failure a
+    commitments ledger exists for. Nothing here can force a promise to be kept;
+    it makes an unkept one countable, which is the most a log can do."""
+    for bad in ({}, {"due": "soon", "owed_to": "x"}, {"due": "2027-02-31", "owed_to": "x"},
+                {"due": "2027-01-01"}):
+        with pytest.raises(ValueError, match="commitment"):
+            store.append(log, dict({"kind": "commitment", "title": "t", "body": "b"}, **bad))
+    c = store.append(log, {"kind": "commitment", "title": "ship it", "body": "b",
+                           "due": "2027-01-01", "owed_to": "a reader"})
+    assert c["due"] == "2027-01-01"
+
+
+def test_due_and_owed_to_are_reserved_for_commitments(log):
+    with pytest.raises(ValueError, match="reserved for kind commitment"):
+        store.append(log, {"kind": "hunch", "title": "t", "body": "b", "due": "2027-01-01"})
+
+
+def test_a_commitment_is_discharged_once(log):
+    c = store.append(log, {"kind": "commitment", "title": "t", "body": "b",
+                           "due": "2027-01-01", "owed_to": "x"})
+    with pytest.raises(ValueError, match="discharges"):
+        store.append(log, {"kind": "meta", "title": "t", "body": "b", "discharges": "e999999"})
+    store.append(log, {"kind": "meta", "title": "done", "body": "b", "discharges": c["id"]})
+    with pytest.raises(ValueError, match="already discharged"):
+        store.append(log, {"kind": "meta", "title": "again", "body": "b", "discharges": c["id"]})

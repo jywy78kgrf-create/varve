@@ -180,3 +180,97 @@ def questions(root):
             answered.setdefault(e["answers"], []).append(e["id"])
     return [(e, answered.get(e["id"], []))
             for e in entries if e.get("kind") == "question"]
+
+
+def commitments(root, today=None):
+    """Every promise the log has made, and whether it is still owed.
+
+    Rows of (entry, discharged_by_or_None, "open"|"overdue"|"kept"). This is the
+    object an amnesiac most needs and is least likely to reconstruct: a promise
+    made three sessions ago by an instance that no longer exists, to someone who
+    remembers it perfectly.
+    """
+    entries = store.read_log(root)
+    closed = {e["discharges"]: e["id"] for e in entries if e.get("discharges")}
+    now = today or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    rows = []
+    for e in entries:
+        if e.get("kind") != "commitment":
+            continue
+        by = closed.get(e["id"])
+        if by:
+            state = "kept"
+        elif str(e.get("due", "")) < now:
+            state = "overdue"
+        else:
+            state = "open"
+        rows.append((e, by, state))
+    return rows
+
+
+def check_anchors(root, timeout=15.0, kinds=("url",)):
+    """Dereference anchors that the gate can only shape-check, and report.
+
+    The gate existence-checks 'entry' and 'file' anchors at write time, which is
+    what makes a fabricated referent cheaper to avoid than to invent — the fix
+    the from-memory reflex calls for. 'url' anchors get no such treatment: the
+    gate is stdlib, offline and deterministic by design, and reaching the
+    network at write time would trade all three away.
+
+    So the check moves out of the gate and into a command that can be run on a
+    schedule. Rows of (entry_id, ref, status). Status is an HTTP code, or a
+    reason string. Nothing here is a verification that the page SUPPORTS the
+    claim — only that a reader following the anchor arrives somewhere.
+    """
+    import urllib.error
+    import urllib.request
+
+    rows = []
+    for e in store.read_log(root):
+        for a in (e.get("anchors") or []):
+            if not isinstance(a, dict) or a.get("type") not in kinds:
+                continue
+            ref = str(a.get("ref", ""))
+            try:
+                req = urllib.request.Request(ref, method="HEAD",
+                                             headers={"User-Agent": "varve-anchor-check"})
+                with urllib.request.urlopen(req, timeout=timeout) as r:
+                    rows.append((e["id"], ref, r.status, "ok"))
+            except urllib.error.HTTPError as exc:
+                # Some hosts refuse HEAD but serve GET. Retry once before
+                # reporting a dead anchor, since a false "dead" here is the
+                # crying-wolf failure that makes a checker worthless.
+                if exc.code in (403, 405, 501):
+                    try:
+                        with urllib.request.urlopen(
+                                urllib.request.Request(
+                                    ref, headers={"User-Agent": "varve-anchor-check"}),
+                                timeout=timeout) as r:
+                            rows.append((e["id"], ref, r.status, "ok"))
+                            continue
+                    except urllib.error.HTTPError as exc2:
+                        rows.append((e["id"], ref, exc2.code, _verdict(exc2.code)))
+                        continue
+                    except Exception as exc2:
+                        rows.append((e["id"], ref, type(exc2).__name__, "blocked"))
+                        continue
+                rows.append((e["id"], ref, exc.code, _verdict(exc.code)))
+            except Exception as exc:
+                # A name that does not resolve IS a dead anchor; a timeout or a
+                # refused connection is this machine's problem, not the ref's.
+                name = type(exc).__name__
+                reason = str(getattr(exc, "reason", exc))
+                dead = "getaddrinfo" in reason or "Name or service" in reason \
+                    or "nodename nor servname" in reason
+                rows.append((e["id"], ref, name, "DEAD" if dead else "blocked"))
+    return rows
+
+
+def _verdict(code):
+    """403/407 are what a filtering proxy returns for a page that exists.
+    Only 404 and 410 are the server saying the thing is not there."""
+    if code in (404, 410):
+        return "DEAD"
+    if 200 <= code < 400:
+        return "ok"
+    return "blocked"

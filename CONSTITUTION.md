@@ -19,6 +19,12 @@ discipline, not a checkbox.
    check the claim. An unanchored impression is welcome, but it must wear its
    label: `hunch`, `hypothesis`, or `question`. Confidence is not provenance.
 
+   *`commitment` names a promise: what is owed, to whom, and by when. An
+   amnesiac's obligations otherwise live in prose and die with the session that
+   made them, while the person owed remembers perfectly. A later entry
+   discharges one by naming it. Nothing here can force a promise to be kept —
+   it makes an unkept one countable, which is the most a log can do.*
+
    *`survey` records a null result — "I looked here, and there was nothing" —
    and anchors hardest of all, because where you looked is the only thing a
    reader can check about an absence. It exists so that finding nothing is a

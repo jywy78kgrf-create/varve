@@ -65,6 +65,8 @@ def reconstructed_referent(root):
                                  "anchors": [{"type": "entry", "ref": "e009999"}]}),
         "file": rejected(root, {"kind": "observation", "title": "t", "body": "b",
                                 "anchors": [{"type": "file", "ref": "varve/invented.py"}]}),
+        # url is shape-only AT THE GATE by design (stdlib, offline, deterministic);
+        # `varve check-anchors` dereferences them out of band instead.
         "url": rejected(root, {"kind": "observation", "title": "t", "body": "b",
                                "anchors": [{"type": "url", "ref": "https://example.com/invented"}]}),
         "query": rejected(root, {"kind": "observation", "title": "t", "body": "b",
@@ -95,12 +97,24 @@ def stale_claim(root):
 # --- 3. a promise made in one session, lost in the next ---------------------
 def dropped_commitment(root):
     """Cairn hit this publicly: a plan rewrite silently ate a commitment made by
-    email, and the fix was a commitments ledger. varve has no such object."""
-    kinds = validate.KINDS
-    if "commitment" in kinds:
-        return "PREVENTED", "a commitment kind exists"
-    return "OPEN", ("no commitment kind, no ledger, nothing enumerates promises. "
-                    "A commitment lives in prose and dies with the session")
+    email, and the fix was a commitments ledger."""
+    if "commitment" not in validate.KINDS:
+        return "OPEN", "no commitment kind; a promise lives in prose and dies with the session"
+    if not rejected(root, {"kind": "commitment", "title": "vague", "body": "b"}):
+        return "DISCOURAGED", "a commitment kind exists but needs no due date"
+    c = store.append(root, {"kind": "commitment", "title": "ship the thing", "body": "b",
+                            "due": "2020-01-01", "owed_to": "a reader"})
+    overdue = [r for r in views.commitments(root) if r[2] == "overdue"]
+    if not overdue:
+        return "DETECTED", "commitments exist but overdue ones are not surfaced"
+    store.append(root, {"kind": "meta", "title": "done", "body": "b", "discharges": c["id"]})
+    kept = [r for r in views.commitments(root) if r[2] == "kept"]
+    twice = rejected(root, {"kind": "meta", "title": "again", "body": "b",
+                            "discharges": c["id"]})
+    return "DETECTED", ("promises are countable: due+owed_to required, %d overdue "
+                        "surfaced, %d discharged, double-discharge %s. Nothing can "
+                        "force a promise to be KEPT — only counted"
+                        % (len(overdue), len(kept), "refused" if twice else "ALLOWED"))
 
 
 # --- 4. silent edit of the past ---------------------------------------------
@@ -185,27 +199,51 @@ def concurrent_write(root):
     """Two instances reading the same head and both appending. No lock exists;
     the loser hits 'refusing to overwrite'. Loud, not corrupting — but the
     recovery is unwritten and the failure is unlogged."""
+    import multiprocessing as mp
+
+    def w(root, n, q):
+        ok = 0
+        for i in range(n):
+            try:
+                store.append(root, {"kind": "hunch", "title": "p%d-%d" % (os.getpid(), i),
+                                    "body": "b"})
+                ok += 1
+            except ValueError:
+                pass
+        q.put(ok)
+
+    q = mp.Queue()
+    procs = [mp.Process(target=w, args=(root, 8, q)) for _ in range(4)]
+    for pr in procs:
+        pr.start()
+    for pr in procs:
+        pr.join()
+    wrote = sum(q.get() for _ in procs)
     entries = store.read_log(root)
-    a = dict(entries[-1], seq=entries[-1]["seq"] + 1,
-             id="e%06d" % (entries[-1]["seq"] + 1), title="racer A")
-    a["hash"] = store.entry_hash(a)
-    store._write(root, a)
-    try:
-        store._write(root, dict(a, title="racer B"))
-        return "OPEN", "second writer silently overwrote the first"
-    except ValueError:
-        return "DETECTED", ("write refused, so nothing is corrupted — but there is no "
-                            "lock, no retry, and no entry kind for recording the race")
+    gapless = [e["seq"] for e in entries] == list(range(1, len(entries) + 1))
+    intact = not store.verify(root)
+    if wrote == 32 and gapless and intact and len(entries) == 33:
+        return "PREVENTED", ("4 processes x 8 appends: all 32 written, chain gapless "
+                             "and intact. os.mkdir lock around read-head-then-write")
+    return "OPEN", ("raced 4x8: %d written, %d entries, gapless=%s intact=%s"
+                    % (wrote, len(entries), gapless, intact))
 
 
 # --- 12. the log that cannot say it is healthy ------------------------------
 def liveness_ambiguity(root):
     """From outside, a log that chose silence and a log whose infrastructure died
     are the same picture: no new commits. varve has no heartbeat object."""
-    if "heartbeat" in validate.KINDS:
-        return "PREVENTED", "a heartbeat kind exists"
-    return "OPEN", ("blessed silence and dead infrastructure are optically identical; "
-                    "a stale pace 'next' is ambiguous between chose-rest and nobody-woke")
+    from varve import web
+    path = os.path.join(root, "pace.json")
+    json.dump({"next": "2020-01-01T00:00:00Z", "hold": "x"}, open(path, "w"))
+    overdue_page = web._render(root)
+    json.dump({"next": "2099-01-01T00:00:00Z", "hold": "x"}, open(path, "w"))
+    resting_page = web._render(root)
+    os.remove(path)
+    if "OVERDUE" in overdue_page and "resting" in resting_page:
+        return "DETECTED", ("the public page distinguishes resting from OVERDUE and says "
+                            "by how many hours; still cannot say WHY it is late")
+    return "OPEN", "the rendered page does not distinguish chosen silence from a dead scheduler"
 
 
 PROBES = [

@@ -72,7 +72,14 @@ ANCHORED_KINDS = {"observation", "resolution", "errata", "survey"}
 # open problem is mechanically enumerable instead of buried in a body paragraph
 # (third review, 2026-08-23: the log had no way to list what it does not know).
 LABELED_KINDS = {"hunch", "hypothesis", "question"}
-OTHER_KINDS = {"meta", "errata", "prediction"}
+# 'commitment' makes a promise a first-class object. An amnesiac agent's
+# commitments otherwise live in prose and die with the session that made them —
+# the failure Cairn hit publicly when a plan rewrite silently ate an obligation
+# it had made by email, and closed with a ledger. A commitment names what is
+# owed and by when; a later entry discharges it by pointing at it. Nothing here
+# forces anyone to KEEP a promise. It makes an unkept one countable, which is
+# the most a log can do.
+OTHER_KINDS = {"meta", "errata", "prediction", "commitment"}
 KINDS = ANCHORED_KINDS | LABELED_KINDS | OTHER_KINDS
 
 
@@ -205,6 +212,31 @@ def check(entry, existing, root=None):
         if not ok_date:
             problems.append("prediction needs prediction.resolve_by as YYYY-MM-DD — "
                             "a forecast that cannot come due never calibrates: %r" % (by,))
+
+    if kind == "commitment":
+        due = entry.get("due")
+        if not (isinstance(due, str) and DATE_RE.fullmatch(due.strip())):
+            problems.append("commitment needs 'due' as YYYY-MM-DD — an obligation with "
+                            "no date cannot be counted as overdue: %r" % (due,))
+        else:
+            try:
+                datetime.strptime(due.strip(), "%Y-%m-%d")
+            except ValueError:
+                problems.append("commitment 'due' is not a real date: %r" % (due,))
+        if not _nonempty_str(entry.get("owed_to")):
+            problems.append("commitment needs 'owed_to' — a promise to nobody in "
+                            "particular is a note, and notes are what get dropped")
+    elif "due" in entry or "owed_to" in entry:
+        problems.append("'due' and 'owed_to' are reserved for kind commitment")
+
+    if "discharges" in entry:
+        target = entry.get("discharges")
+        matched = next((e for e in existing if e["id"] == target), None)
+        if matched is None or matched.get("kind") != "commitment":
+            problems.append("'discharges' must name an existing commitment entry id")
+        elif any(e.get("discharges") == target for e in existing):
+            problems.append("commitment %s is already discharged; a dispute is an "
+                            "errata, not a second discharge" % target)
 
     if kind == "resolution":
         target = entry.get("resolves")

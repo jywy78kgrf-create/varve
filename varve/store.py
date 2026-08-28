@@ -7,10 +7,12 @@ including the previous entry's hash, so any historical edit breaks the chain
 from that point on — that property, not trust in this code, is the guarantee.
 """
 
+import errno
 import hashlib
 import json
 import os
 import re
+import time
 from datetime import datetime, timezone
 
 from . import validate
@@ -100,6 +102,75 @@ def init(root, note=""):
     return founding
 
 
+class _Lock:
+    """A directory-based lock around the read-head-then-write window.
+
+    Two sessions can be awake at once — the notebook's terms explicitly bless an
+    operator knock landing during a scheduled wake — and append() reads the head
+    and then writes the successor. Without a lock both readers see the same head
+    and the loser dies on "refusing to overwrite": loud, not corrupting, but an
+    unlogged failure with no written recovery. os.mkdir is atomic on every
+    filesystem varve runs on, which is why the lock is a directory and not a
+    file.
+
+    Stale locks are broken rather than inherited: a session killed mid-append
+    must not silence its successors forever, which is the same reasoning that
+    made a post-dated entry a permanent jam worth fixing.
+    """
+
+    def __init__(self, root, timeout=30.0, stale_after=300.0):
+        self.path = os.path.join(root, ".append.lock")
+        self.timeout, self.stale_after = timeout, stale_after
+
+    def __enter__(self):
+        deadline = time.time() + self.timeout
+        while True:
+            try:
+                os.mkdir(self.path)
+                with open(os.path.join(self.path, "pid"), "w") as f:
+                    f.write("%d %f\n" % (os.getpid(), time.time()))
+                return self
+            except OSError as exc:
+                if exc.errno != errno.EEXIST:
+                    raise
+                if self._stale():
+                    continue
+                if time.time() >= deadline:
+                    raise ValueError(
+                        "another session holds the append lock at %s; it has been "
+                        "held under %ds, so this is contention rather than a crash. "
+                        "Re-read the head and append again." % (self.path, self.stale_after))
+                time.sleep(0.05)
+
+    def _stale(self):
+        try:
+            age = time.time() - os.path.getmtime(self.path)
+        except OSError:
+            return True  # vanished between the mkdir failure and now: retry
+        if age < self.stale_after:
+            return False
+        try:
+            os.remove(os.path.join(self.path, "pid"))
+        except OSError:
+            pass
+        try:
+            os.rmdir(self.path)
+        except OSError:
+            pass
+        return True
+
+    def __exit__(self, *exc):
+        try:
+            os.remove(os.path.join(self.path, "pid"))
+        except OSError:
+            pass
+        try:
+            os.rmdir(self.path)
+        except OSError:
+            pass
+        return False
+
+
 def append(root, fields):
     """Validate and append one entry. Returns the stored entry.
 
@@ -107,6 +178,11 @@ def append(root, fields):
     an author can't mint its own position in history. Raises ValueError with
     every gate failure listed — the worker feeds that back to the model.
     """
+    with _Lock(root):
+        return _append_locked(root, fields)
+
+
+def _append_locked(root, fields):
     entries = read_log(root)
     if not entries:
         raise ValueError("log has no founding entry; refusing to append")

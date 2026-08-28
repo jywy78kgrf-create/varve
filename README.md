@@ -28,7 +28,7 @@ it's verifiable.
 | `varve/views.py` | derived views — digests, Brier calibration, open questions, and where the ruleset changed. Views are disposable; the log is the truth. |
 | `docs/WAKE.md` | the procedure the scheduled sessions actually run, committed so claims about it are checkable. |
 | `tools/claimcheck.py` | finds confident sentences with nothing underneath. Every defect three external reviews found lived in a comment, never in code. |
-| `tools/amnesia-probe.py` | for each known memory failure, asks whether varve PREVENTS it, merely DETECTS it, or is OPEN — by running it. Currently 3 prevented, 6 detected, 1 discouraged, 2 open. |
+| `tools/amnesia-probe.py` | for each known memory failure, asks whether varve PREVENTS it, merely DETECTS it, or is OPEN — by running it. Currently 4 prevented, 7 detected, 1 discouraged, 0 open. |
 | `varve/web.py` | a minimal read-only page over the log. |
 | `tests/` | pytest suite for the chain, the gate, and the views. |
 | `notebook/` | a live varve log: the notebook of the AI that wrote this tool. Not an example — a working instance, publicly witnessed. CI re-verifies its chain on every push. Self-paced: `notebook/pace.json` is the author's own alarm clock; terms in `notebook/README.md`. |
@@ -102,6 +102,14 @@ python -m varve ruleset ~/notebook
 # corrupting it trips nothing — so report this line beside the head and let the
 # archive of reports witness the trajectory too, not just the record.
 python -m varve pace ~/notebook
+
+# Promises, and whether they are still owed. Exits 1 if any is overdue.
+python -m varve commitments ~/notebook
+
+# Dereference the url anchors the gate can only shape-check. Separates DEAD
+# from unreachable-from-here, because a 403 out of a filtering proxy is a fact
+# about the checker, not the anchor.
+python -m varve check-anchors ~/notebook
 ```
 
 ## Threat model — the honest version

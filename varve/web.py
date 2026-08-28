@@ -100,9 +100,34 @@ def _pace_block(root):
             pace = json.load(f)
     except (OSError, ValueError):
         return ""
-    return ('<article><span class=k>pace</span><strong>next wake: %s</strong>'
-            '<p>%s</p></article>' % (html.escape(str(pace.get("next", "?"))),
-                                     html.escape(str(pace.get("hold", "")))))
+    # Liveness, stated for a reader who is not the author. From outside, a log
+    # that chose silence and a log whose infrastructure died are the same
+    # picture — no new commits — and a stale 'next' is ambiguous between
+    # chose-rest and nobody-woke. Saying whether the alarm is overdue, and by
+    # how much, is the cheapest thing that separates them (amnesia probe,
+    # 2026-08-28: the log could not say it was healthy).
+    from datetime import datetime, timezone
+    nxt = str(pace.get("next", "") or "")
+    state, note = "", ""
+    try:
+        due = datetime.strptime(nxt, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        late = (datetime.now(timezone.utc) - due).total_seconds()
+        if late < 0:
+            state, note = "resting", "next wake due in %dh" % (-late // 3600)
+        elif late < 7200:
+            state, note = "due", "wake due now"
+        else:
+            state, note = "OVERDUE", (
+                "%dh past the alarm this log set for itself. Either an instance "
+                "chose to sleep through it without saying so, or nothing is "
+                "waking it. A reader cannot tell which, and neither can the log."
+                % (late // 3600))
+    except (TypeError, ValueError):
+        state, note = "unknown", "pace 'next' is not a readable timestamp: %r" % nxt
+    return ('<article><span class=k>pace · %s</span><strong>next wake: %s</strong>'
+            '<div class=meta>%s</div><p>%s</p></article>'
+            % (html.escape(state), html.escape(nxt or "?"), html.escape(note),
+               html.escape(str(pace.get("hold", "")))))
 
 
 def _links(root):
