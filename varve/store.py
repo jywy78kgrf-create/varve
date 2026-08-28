@@ -46,6 +46,29 @@ def entry_hash(entry):
     return hashlib.sha256(canonical(entry).encode("utf-8")).hexdigest()
 
 
+def _no_duplicate_keys(pairs):
+    """json.loads keeps the LAST of duplicate keys, silently.
+
+    So an entry file carrying two "body" members hashes over one value while a
+    human reading the file sees the other, and `varve verify` reports the chain
+    intact — a forgery that passes, which is precisely the class this project
+    claims to catch. The fix is to refuse the parse: a file whose meaning
+    depends on which parser reads it is not a record.
+
+    Found by the second notebook (QQ1eF), which closed it in its own vendored
+    copy days before this one had it. Ported 2026-08-28, same direction as the
+    'ts' fix and for the same reason: a defect found there is a defect here.
+    """
+    seen, out = set(), {}
+    for k, v in pairs:
+        if k in seen:
+            raise ValueError("duplicate key %r — an entry whose meaning depends on "
+                             "which parser reads it is not a record" % k)
+        seen.add(k)
+        out[k] = v
+    return out
+
+
 def read_log(root):
     """All entries in sequence order. Missing dir means no log here."""
     d = _log_dir(root)
@@ -63,8 +86,8 @@ def read_log(root):
         path = os.path.join(d, name)
         with open(path, "r", encoding="utf-8") as f:
             try:
-                entries.append(json.load(f))
-            except json.JSONDecodeError as exc:
+                entries.append(json.load(f, object_pairs_hook=_no_duplicate_keys))
+            except (json.JSONDecodeError, ValueError) as exc:
                 # Name the file. An unreadable entry IS a broken chain, and the
                 # reader needs to know which one — a bare JSONDecodeError points
                 # at a column of a file it never names (second review,

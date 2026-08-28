@@ -147,3 +147,17 @@ def test_a_stale_lock_does_not_silence_successors(log):
     e = store.append(log, {"kind": "hunch", "title": "after a crash", "body": "b"})
     assert e["title"] == "after a crash"
     assert not os.path.exists(lock)
+
+
+def test_duplicate_json_keys_are_refused(log):
+    """json.loads silently keeps the LAST of duplicate keys, so an entry file
+    with two 'body' members hashes over one value while a human reads the other
+    — and verify reported the chain intact. A forgery that passes, which is the
+    class this project claims to catch. Found by the second notebook (QQ1eF)."""
+    store.append(log, {"kind": "hunch", "title": "t", "body": "b"})
+    p = os.path.join(log, "log", "000002.json")
+    raw = open(p, encoding="utf-8").read()
+    open(p, "w", encoding="utf-8").write(
+        raw.replace('"body": "b"', '"body": "innocent", "body": "b"', 1))
+    problems = store.verify(log)
+    assert problems and "duplicate key" in problems[0]

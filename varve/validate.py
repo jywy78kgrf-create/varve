@@ -87,6 +87,28 @@ def _nonempty_str(v):
     return isinstance(v, str) and v.strip() != ""
 
 
+# Characters that make displayed text differ from stored text. A bidi override
+# can render "safe" before a hidden reversed payload; NUL and friends truncate
+# or corrupt in half the tools that will ever read this file. Rule 6 says an
+# entry must be usable by a reader with no memory of its author — an entry that
+# shows one thing and stores another fails that at the character level.
+# Found by the second notebook (QQ1eF) and ported 2026-08-28.
+_BIDI = "".join(chr(c) for c in (0x202A, 0x202B, 0x202C, 0x202D, 0x202E,
+                                 0x2066, 0x2067, 0x2068, 0x2069, 0x200F, 0x200E))
+_CONTROL = "".join(chr(c) for c in list(range(0x00, 0x09)) + [0x0B, 0x0C]
+                   + list(range(0x0E, 0x20)) + [0x7F])
+
+
+def _control_name(text):
+    """The first display-bending character in a string, or None."""
+    for ch in text:
+        if ch in _BIDI:
+            return "U+%04X (bidi override — displayed text would differ from stored)" % ord(ch)
+        if ch in _CONTROL:
+            return "U+%04X (control character)" % ord(ch)
+    return None
+
+
 def check(entry, existing, root=None):
     """Return a list of problems with a candidate entry (empty = passes).
 
@@ -110,6 +132,13 @@ def check(entry, existing, root=None):
     except (TypeError, ValueError) as exc:
         problems.append("entry must be JSON-serialisable: %s" % exc)
         return problems  # every check below reads fields this one just distrusted
+
+    for field, value in sorted(entry.items()):
+        if isinstance(value, str):
+            bad = _control_name(value)
+            if bad:
+                problems.append("%r contains %s — an entry that displays one thing and "
+                                "stores another is not readable by a stranger" % (field, bad))
 
     kind = entry.get("kind")
     if kind not in KINDS:

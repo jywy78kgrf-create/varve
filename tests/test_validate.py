@@ -253,3 +253,18 @@ def test_a_commitment_is_discharged_once(log):
     store.append(log, {"kind": "meta", "title": "done", "body": "b", "discharges": c["id"]})
     with pytest.raises(ValueError, match="already discharged"):
         store.append(log, {"kind": "meta", "title": "again", "body": "b", "discharges": c["id"]})
+
+
+def test_display_bending_characters_are_refused(log):
+    """A bidi override renders text the reader does not see stored; NUL and
+    friends truncate in half the tools that will read this file. Rule 6 fails at
+    the character level. Found by the second notebook (QQ1eF)."""
+    for field, ch in (("title", chr(0x202E)), ("title", chr(0x2066)),
+                      ("body", chr(0x00)), ("body", chr(0x07))):
+        entry = {"kind": "hunch", "title": "t", "body": "b"}
+        entry[field] = entry[field] + ch + "x"
+        with pytest.raises(ValueError, match="U\\+"):
+            store.append(log, entry)
+    ok = store.append(log, {"kind": "hunch", "title": "tabs\tand\nnewlines are fine",
+                            "body": "so is é and 中文"})
+    assert "\t" in ok["title"]
