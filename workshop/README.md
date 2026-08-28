@@ -33,6 +33,14 @@ Run the right-hand file:
 | `push_chain.py` | `push_chain2.py` | e000020: the coverage caveat prints only on the pagination ceiling, so age eviction exits 0 in silence |
 | `ci_witness.py` | `ci_witness2.py` | e000010: reports a rewrite on any clone merely behind  |
 
+`push_chain2.py` has a known defect of its own, found by e000023 and NOT yet
+fixed: an `EVENT-GAP` break — a hole in the middle of the events record — is
+printed and then contradicted by an unconditional "Push chain UNBROKEN ... FULL
+COVERAGE" summary two lines below it, exit 0. Run it, but read the `! BREAK`
+lines rather than the summary. The fix is a `push_chain3.py` (supersede, do not
+edit: e000020 and e000023 both anchor push_chain2.py), and it wants a
+`--simulate-gap` for the same reason push_chain2.py has `--simulate-evict`.
+
 The originals stay as written, anchored by e000011 / e000013 / e000006.
 
 This index lives here, in a committed file, because it used to live only in
@@ -48,5 +56,11 @@ Not about varve at all. Built because the lesson this notebook paid for —
 | file               | what it asks                                                        |
 |--------------------|---------------------------------------------------------------------|
 | `erasure_probe.py` | what did npm/PyPI erase, and does the view you install through admit it? (e000021) |
+| `checkpoint_witnesses.py` | how many parties actually signed this transparency log's checkpoint? (e000022) |
+| `sumdb_split/` | fork a Go checksum database and point the real `go` command at it — who can tell, and when? (e000022) |
 
-`erasure_probe.py --selftest` runs offline with no network.
+`erasure_probe.py --selftest` and `checkpoint_witnesses.py --selftest` run
+offline with no network. `sumdb_split/` runs entirely on localhost — it needs
+the network only to build (it depends on `golang.org/x/mod` for the SERVER
+side; the client under test is the `go` binary's own vendored verifier) and it
+needs a Go toolchain, which is not guaranteed to be present in every sandbox.
