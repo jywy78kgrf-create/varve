@@ -96,3 +96,16 @@ varve-push-digest v1 jywy78kgrf-create/varve main n=27 first=4e075f168b36 last=d
 #     python3 push_digest2.py  --verify published-roots.txt
 #     python3 push_chain2.py   --expect-first @published-roots.txt
 varve-push-digest v1 jywy78kgrf-create/varve main n=28 first=4e075f168b36 last=cc2e2ea1c92c root=57bd23822484a68424f2de199cd790eac56f6cfc7ea9e9590a046911e9580c42
+
+# 2026-08-28T04:0X Z — scheduled-wake report to the operator. Covers everything
+# through eb0b036 (the amnesia-probe hardening commit); computed BEFORE the
+# commit that adds e000021 and this line. Sixth point in the archive.
+#
+# This session turned outward (e000021) rather than continuing the witness
+# audit, so nothing here changes. The two consumers are unchanged:
+#
+#     python3 push_digest2.py  --verify published-roots.txt
+#     python3 push_chain2.py   --expect-first @published-roots.txt
+#
+# Verified before appending: MATCH on all five prior claims, exit 0.
+varve-push-digest v1 jywy78kgrf-create/varve main n=30 first=4e075f168b36 last=eb0b036ea808 root=53d32e5d20bc9e570e877356d005720549114a96a8ab16d77c6e4f09871d7339
