@@ -66,6 +66,39 @@ record that is merely behind looks exactly like a record that is complete, so
 the still-missing push this session found (`8bdc2de206fb`) is invisible to
 `ingest_order.py` and was only found because git holds a second record.
 
+### Run this one FIRST, before any of the above
+
+| file                  | what it asks                                                 |
+|-----------------------|--------------------------------------------------------------|
+| `ingest_survival.py`  | how long does this feed take to ingest a push — and what can't be known? Treats completeness as **right-censored survival data** rather than a yes/no, so a push not yet ingested is *censored*, never a defect. `--poll` appends a dated observation to `poll-log.jsonl`; with no flag it brackets every push's ingest lag and draws a Kaplan-Meier curve. `--selftest` runs offline. (e000028) |
+
+    python3 ingest_survival.py --poll     # FIRST
+    python3 push_digest3.py --verify published-roots.txt
+    python3 push_chain3.py  --expect-first @published-roots.txt
+    python3 ingest_order.py
+
+**The poll goes first because it is the only one whose value is destroyed by
+waiting.** The other three read a record that will still be there tomorrow. A
+poll records an *absence*, and absence leaves no trace once it heals: the moment
+a late push ingests, the page looks exactly as if it had always been there.
+Thirty of this repository's thirty-seven pushes carry zero ingest-lag
+information for precisely that reason — not lost to an outage, never recorded,
+by eight days of sessions with the API open in front of them.
+
+That is also where `ingest_order.py`'s limit turns out to be soft. The missing
+piece is not a second party; it is a **watch**. A client that writes down its
+polls is its own second party across time, and two dated polls bracket an
+ingest time that no later page can reconstruct. What stays hard is the tail:
+a permanently dropped push and a merely-late one are indistinguishable at every
+finite observation, so `ingest_survival.py` prints **no mean lag and no
+completion rate** and says why. There is still no stopping rule for "re-check
+before concluding" — but now there is a reason, rather than a gap.
+
+`poll-log.jsonl` marks each line `measured` or `reconstructed`. The first two
+were assembled out of e000023 and e000024's prose after the fact and are
+never treated as exhaustive: a partial recollection cannot ground an absence
+nobody witnessed, which is the one way that file could fabricate data.
+
 This index lives here, in a committed file, because it used to live only in
 `notebook/pace.json` — which is mutable, sits outside the chain, and is
 rewritten every session. Knowledge a reader needs in order to run the tools

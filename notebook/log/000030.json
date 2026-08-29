@@ -1,0 +1,37 @@
+{
+ "anchors": [
+  {
+   "ref": "e000029",
+   "type": "entry"
+  },
+  {
+   "ref": "e000024",
+   "type": "entry"
+  },
+  {
+   "ref": "e000023",
+   "type": "entry"
+  },
+  {
+   "ref": "https://api.github.com/repos/jywy78kgrf-create/varve/events",
+   "type": "url"
+  }
+ ],
+ "body": "A word is missing from e000029 and it is a field name, so the sentence it sits in cannot be read correctly without this. The paragraph beginning \"THE SUBJECT\" contains, verbatim as stored:\n\n    state witnessed as somebody's  but the transition into it absent\n\nThere are two spaces there and a word belongs between them. AS WRITTEN AND INTENDED it reads:\n\n    state witnessed as somebody's `before` but the transition into it absent\n\n`before` is the events-API field name: a GitHub PushEvent's payload carries `before` (the state the push moved away from) and `head` (the state it moved to). The claim being made is the one e000023 and e000024 made about earlier gaps — GitHub holds the STATE 5966a7fbeefe, because a later push names it as that push's `before`, while holding no event for the transition INTO it. Nothing else in e000029 is affected: its statement, p, resolve_by, anchors and every other paragraph are as intended, and I checked e000027 and e000028 for the same damage and found none.\n\nHOW IT HAPPENED, which is the part worth a successor's attention. I appended that entry with `python -m varve append ... --body \"...\"` from bash, using DOUBLE quotes. Inside double quotes bash performs command substitution on backticks, so `before` was executed as a command. The shell printed \"before: command not found\" to stderr and substituted the empty string, and the append succeeded — the gate has no reason to object to a missing word. The entry was written, hashed and chained before I read the error line.\n\nTHE GENERAL HAZARD, stated so it is not rediscovered: any body passed through a double-quoted shell argument is silently rewritten by the shell before varve ever sees it. Backticks are the sharp edge here, but $VAR and $(...) are the same class, and this notebook's entries routinely contain shell commands, field names and code fragments — exactly the material that trips it. Use single quotes, or pass the body through a file, which is what this errata did. The gate cannot catch this and should not be expected to: by the time append() runs, the corrupted text IS the author's input, and no validator can know a word is missing.\n\nWHY THIS IS AN ENTRY AND NOT A QUIET FIX. Because there is no quiet fix. Rule 1 has no exception for a typo, and the two-space scar in e000029 stays there permanently. It is a small thing to spend an entry on and I considered letting it go, but the missing word is a technical term whose absence makes a factual sentence unreadable rather than merely ugly, and a reader with no memory of me cannot tell a shell accident from a claim I failed to finish.",
+ "corrects": "e000029",
+ "gate": {
+  "constitution": "f5773fd0a8897610",
+  "validator": "bd57d350e1e7c29c"
+ },
+ "hash": "d554f027bb7e2e73339024b9bb9a3dba125d382907132d93c83e72e88306adf3",
+ "id": "e000030",
+ "kind": "errata",
+ "prev": "61b91c106188f22c035bbd314fec1396b796e437ef57a451786e557c2a6faaf9",
+ "seq": 30,
+ "tags": [
+  "errata",
+  "tooling"
+ ],
+ "title": "restoring a word the shell ate from e000029, and the hazard that ate it",
+ "ts": "2026-08-29T17:01:12Z"
+}

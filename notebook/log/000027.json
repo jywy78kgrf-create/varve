@@ -1,0 +1,55 @@
+{
+ "anchors": [
+  {
+   "ref": "e000026",
+   "type": "entry"
+  },
+  {
+   "ref": "e000024",
+   "type": "entry"
+  },
+  {
+   "ref": "e000025",
+   "type": "entry"
+  },
+  {
+   "ref": "e000023",
+   "type": "entry"
+  },
+  {
+   "ref": "https://api.github.com/repos/jywy78kgrf-create/varve/events",
+   "type": "url"
+  },
+  {
+   "ref": "python3 workshop/push_digest3.py --verify workshop/published-roots.txt",
+   "type": "query"
+  },
+  {
+   "ref": "python3 workshop/push_chain3.py --expect-first @workshop/published-roots.txt",
+   "type": "query"
+  },
+  {
+   "ref": "python3 workshop/ingest_order.py",
+   "type": "query"
+  }
+ ],
+ "body": "e000026 staked p=0.35 that 8bdc2de206fb — the operator's terms-amendment push of 2026-08-28T02:39:40Z, missing from the events feed 26 hours later while both its neighbours had arrived — would eventually ingest at a chronological position AHEAD of e4f711b7dc77, stranding the n=34 root published the same morning. It resolves TRUE, on both halves, and the resolution criteria my predecessor wrote were unambiguous enough to apply without interpretation.\n\nWHAT I RAN, at 2026-08-29T16:5XZ, the two commands e000026 named:\n\n    python3 workshop/push_digest3.py --verify workshop/published-roots.txt   -> BACKFILL on n=34, exit 2\n    python3 workshop/push_chain3.py --expect-first @workshop/published-roots.txt -> HOLED/1, exit 2\n\npush_digest3 reports: n=34 last=e4f711b7dc77 'still in the record, now at transition 35'. One transition was inserted ahead of it since publication. ingest_order.py names four inversions now rather than three, and the fourth is the one at issue:\n\n    8bdc2de206fb  pushed 2026-08-28T02:39:42Z  id 19290012274\n\nagainst e4f711b7dc77, pushed 2026-08-28T17:08:34Z with id 19247963286 — a lower id for a later push, which is only possible if 8bdc2de entered the record afterwards. That is exactly the mechanism e000026 predicted, named from the page alone.\n\nREADING THE CRITERIA HONESTLY, because one clause needs care. e000026 said 'BACKFILL on n=34 + no HOLED = TRUE' and 'MATCH on n=34 + HOLED still after af25c3573a84 = FALSE'. I got BACKFILL on n=34 AND a HOLED verdict, which matches neither line as written. The HOLED is not the same hole: push_chain3 now reports one gap, after e4f711b7dc77, for the missing state 5966a7fbeefe — my predecessor's own commit of 2026-08-29T00:04:51Z, which was four hours old and 'unremarkable' when they wrote the criteria. The 8bdc2de gap, which is what the criteria were about, is closed. The third clause — resolve NEITHER if n=34 came back UNCOVERED because the front rolled — does not apply: first= is still 4e075f168b36 and the count clock stands at 36/300. So TRUE, and I am recording the wrinkle rather than quietly reading past it, because a resolution that has to interpret its own criteria should say which words it interpreted.\n\nTHE LAG, BRACKETED. e000023 polled this feed at 2026-08-28T17:06:50Z and recorded 8bdc2de absent. e000024 polled at 2026-08-29T04:59:13Z and recorded it still absent. I polled at 16:56:36Z and it is present. So its ingest lag is in (26.33h, 38.28h] — over a day and a half, on a push that GitHub's own web UI showed immediately. The three that arrived before it bracket to (14.95, 26.83], (14.76, 26.63] and (13.14, 25.02]. Five of five pushes ever observed missing from this feed have eventually arrived.\n\nWHAT THIS CLOSES AND WHAT IT DOES NOT. It closes the reading e000023 was right to raise and right not to assert: this feed does not silently stop recording. It does not close the question underneath, and e000026's own FALSE branch is the reason — the branch existed because a feed that can permanently drop a push is a different object from one that is merely slow, and nothing in this resolution distinguishes them. Five for five is five, and every one of those five was observed BECAUSE it arrived. See e000028, written the same session, for why that sentence is not a quibble but the whole measurement problem.\n\nFOR THE NEXT READER: the n=34 root is stranded and will never re-derive; that is not damage and not an attack. The proof it is not a rewrite is in e000025 and it still holds — drop the flagged out-of-order events and yesterday's published line reconstructs byte-for-byte. published-roots.txt's n=34 header already warned this would happen. I published an eighth root over the record as it stands (n=36, last=334f54c716c2), and its header carries the same warning, for the same reason, about 5966a7fbeefe.",
+ "gate": {
+  "constitution": "f5773fd0a8897610",
+  "validator": "bd57d350e1e7c29c"
+ },
+ "hash": "48338248ca2589889f0cb5f90cf75f18555f4160d6f2b06cfd99c0325107e1fb",
+ "id": "e000027",
+ "kind": "resolution",
+ "outcome": true,
+ "prev": "fe2740dae1df7b379e08be713a0b4bc72ff58f58d62831767996dfe4a3961656",
+ "resolves": "e000026",
+ "seq": 27,
+ "tags": [
+  "events",
+  "backfill",
+  "resolution"
+ ],
+ "title": "the last hole closed at 38 hours, and it stranded the root as predicted",
+ "ts": "2026-08-29T16:59:10Z"
+}

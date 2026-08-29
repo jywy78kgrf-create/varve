@@ -1,0 +1,33 @@
+# poll-log.jsonl -- what this feed held, and WHEN somebody looked.
+#
+# One JSON object per line, consumed by workshop/ingest_survival.py. This file
+# exists because of the one thing a back-filling record destroys: the evidence
+# that something was ever missing. Once a late push ingests, the page looks
+# exactly as if it had always been there. ingest_order.py can still prove the
+# record grew in its past (ids vs created_at), but it cannot say for how long a
+# push was absent, and it can say nothing at all about a push that has not
+# arrived yet. Only a dated poll can. A poll costs one line and cannot be
+# reconstructed after the fact.
+#
+# Fields:
+#   polled_at   ISO-8601 UTC, when the feed was read
+#   source      "measured"      -- this file's tool read the API and wrote the line
+#               "reconstructed" -- assembled from a chain entry's prose, after the
+#                                  fact, by a later session. NOT exhaustive.
+#   exhaustive  true only when `present` is the COMPLETE set of push transitions
+#               the feed served at that moment. A reconstructed poll is never
+#               exhaustive: it attests only the heads its source entry named, and
+#               ingest_survival.py refuses to infer an absence from it. Treating
+#               a partial recollection as a complete observation would invent
+#               absences nobody witnessed, which is the only way this file could
+#               fabricate data.
+#   present / absent   heads (12 hex) attested one way or the other
+#   subjects    head -> {pushed_at, ...} for pushes this poll introduces
+#
+# The first three lines are reconstructed, because this notebook ran for eight
+# days without keeping polls and the data had to be recovered from e000023,
+# e000024 and the n=34 header of published-roots.txt. Every line after them is
+# measured. See e000027.
+{"polled_at": "2026-08-28T17:06:50Z", "repo": "jywy78kgrf-create/varve", "source": "reconstructed", "exhaustive": false, "from": "e000027 reading e000023 (ts 2026-08-28T17:06:50Z)", "events_served": 34, "transitions": 30, "present": [], "absent": ["7a294ccd00b7", "af25c3573a84", "8bdc2de206fb", "154c15cb1df2"], "subjects": {"7a294ccd00b7": {"pushed_at": "2026-08-28T02:09:41Z"}, "af25c3573a84": {"pushed_at": "2026-08-28T02:21:30Z"}, "8bdc2de206fb": {"pushed_at": "2026-08-28T02:39:42Z"}, "154c15cb1df2": {"pushed_at": "2026-08-28T03:58:19Z"}}, "note": "e000023 verbatim: 'Four pushes on main are absent from the record.' It names all four. It does not enumerate what WAS present, hence exhaustive:false. e4f711b7dc77 was pushed 17:08:34Z, after this poll, so it is not a subject of it."}
+{"polled_at": "2026-08-29T04:59:13Z", "repo": "jywy78kgrf-create/varve", "source": "reconstructed", "exhaustive": false, "from": "e000027 reading e000024 (ts 2026-08-29T04:59:13Z) and the n=34 header of published-roots.txt", "events_served": 39, "transitions": 34, "present": ["7a294ccd00b7", "af25c3573a84", "154c15cb1df2", "e4f711b7dc77"], "absent": ["8bdc2de206fb", "5966a7fbeefe"], "subjects": {"e4f711b7dc77": {"pushed_at": "2026-08-28T17:08:34Z"}, "5966a7fbeefe": {"pushed_at": "2026-08-29T00:04:51Z", "pushed_at_source": "commit-timestamp-proxy", "pushed_at_note": "no push event exists for this commit, so its push time is the COMMIT time, not an observed created_at. Measured offset on this repo between commit time and event created_at: +2s to +29s over 7 samples. Good to about half a minute; it is a proxy and is labelled as one."}}, "note": "e000024 verbatim: 'Three of the four absent pushes have arrived' (naming 7a294cc, af25c35, 154c15c), '8bdc2de206fb ... has no push event twenty-six hours later', '5966a7fd (pushed ~2026-08-29T00:05Z, ~4.8h ago) is likewise absent'. e4f711b7dc77 present per the id table in the same entry."}
+{"events_served": 41, "exhaustive": true, "note": "first measured poll; e000027 session. 8bdc2de206fb arrived, resolving e000026 TRUE.", "polled_at": "2026-08-29T16:56:36Z", "present": ["8b7c35dce0ae", "c6708c0c3b9b", "5442ced9af37", "17bafcb857cc", "c8455cf587d4", "802e9742a2ed", "e43572246de9", "bff1e6f1a964", "cf81433db471", "ba7a3c7ad0c9", "b6f5c817402e", "d0623e27d4c2", "4f3b5d56b5b4", "705c1c8a717f", "6d4ade4b260b", "7e80c38b26f4", "4c6f8902ee2f", "6192adbf2ff1", "267e8ca71810", "cdc7e1ccd0f2", "45c35a82416d", "5718ff3632a6", "9da32c1df7b2", "95751cddc3c6", "cf7ebebb14af", "30e8bf1fe5d5", "d0d9db8cd02c", "cc2e2ea1c92c", "446421ef5a63", "eb0b036ea808", "e4f711b7dc77", "7a294ccd00b7", "af25c3573a84", "154c15cb1df2", "8bdc2de206fb", "334f54c716c2"], "repo": "jywy78kgrf-create/varve", "source": "measured", "subjects": {"154c15cb1df2": {"pushed_at": "2026-08-28T03:58:19Z"}, "17bafcb857cc": {"pushed_at": "2026-08-22T06:03:14Z"}, "267e8ca71810": {"pushed_at": "2026-08-23T04:47:23Z"}, "30e8bf1fe5d5": {"pushed_at": "2026-08-24T02:57:40Z"}, "334f54c716c2": {"pushed_at": "2026-08-29T05:03:06Z"}, "446421ef5a63": {"pushed_at": "2026-08-27T03:59:33Z"}, "45c35a82416d": {"pushed_at": "2026-08-23T06:58:57Z"}, "4c6f8902ee2f": {"pushed_at": "2026-08-22T23:57:18Z"}, "4f3b5d56b5b4": {"pushed_at": "2026-08-22T22:57:00Z"}, "5442ced9af37": {"pushed_at": "2026-08-22T05:51:25Z"}, "5718ff3632a6": {"pushed_at": "2026-08-23T12:58:33Z"}, "6192adbf2ff1": {"pushed_at": "2026-08-23T01:50:31Z"}, "6d4ade4b260b": {"pushed_at": "2026-08-22T23:21:04Z"}, "705c1c8a717f": {"pushed_at": "2026-08-22T23:19:49Z"}, "7a294ccd00b7": {"pushed_at": "2026-08-28T02:09:41Z"}, "7e80c38b26f4": {"pushed_at": "2026-08-22T23:43:20Z"}, "802e9742a2ed": {"pushed_at": "2026-08-22T06:18:09Z"}, "8b7c35dce0ae": {"pushed_at": "2026-08-22T00:47:16Z"}, "8bdc2de206fb": {"pushed_at": "2026-08-28T02:39:42Z"}, "95751cddc3c6": {"pushed_at": "2026-08-23T19:39:12Z"}, "9da32c1df7b2": {"pushed_at": "2026-08-23T19:23:23Z"}, "af25c3573a84": {"pushed_at": "2026-08-28T02:21:30Z"}, "b6f5c817402e": {"pushed_at": "2026-08-22T20:38:10Z"}, "ba7a3c7ad0c9": {"pushed_at": "2026-08-22T20:29:18Z"}, "bff1e6f1a964": {"pushed_at": "2026-08-22T06:28:29Z"}, "c6708c0c3b9b": {"pushed_at": "2026-08-22T01:04:26Z"}, "c8455cf587d4": {"pushed_at": "2026-08-22T06:12:17Z"}, "cc2e2ea1c92c": {"pushed_at": "2026-08-26T03:57:25Z"}, "cdc7e1ccd0f2": {"pushed_at": "2026-08-23T05:04:08Z"}, "cf7ebebb14af": {"pushed_at": "2026-08-23T20:15:58Z"}, "cf81433db471": {"pushed_at": "2026-08-22T06:42:11Z"}, "d0623e27d4c2": {"pushed_at": "2026-08-22T22:33:29Z"}, "d0d9db8cd02c": {"pushed_at": "2026-08-25T02:57:39Z"}, "e43572246de9": {"pushed_at": "2026-08-22T06:25:14Z"}, "e4f711b7dc77": {"pushed_at": "2026-08-28T17:08:34Z"}, "eb0b036ea808": {"pushed_at": "2026-08-28T02:16:32Z"}}, "transitions": 36}

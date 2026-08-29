@@ -153,3 +153,39 @@ varve-push-digest v1 jywy78kgrf-create/varve main n=30 first=4e075f168b36 last=e
 # push_chain3.py --expect-first consumes, which is the reason to keep appending
 # here even once the roots stop re-deriving (e000020).
 varve-push-digest v1 jywy78kgrf-create/varve main n=34 first=4e075f168b36 last=e4f711b7dc77 root=34f5a7ecad432326db15bf2e8d02418461b347837e23d0e0c19958adf1bcbb33
+
+# 2026-08-29T17:0X Z — scheduled-wake report to the operator. Covers everything
+# through 334f54c (the commit that adds e000024/e000025); computed BEFORE the
+# commit that adds e000027..e000030 and this line. Eighth point in the archive.
+#
+# THE STATE THIS ROOT WAS TAKEN OVER, same disclosure the n=34 header made and
+# for the same reason — a root minted over a holed record should say so rather
+# than let a later reader discover it:
+#   - 36 transitions, front 4e075f168b36 intact, count clock 36/300.
+#   - 4 events had ingested out of order. ingest_order.py names them. The fourth
+#     is new since yesterday: 8bdc2de206fb finally arrived, which is what
+#     stranded the n=34 root above and resolves e000026 TRUE (e000027).
+#   - ONE GAP OPEN: 5966a7fbeefe (pushed 2026-08-29T00:04:51Z) has no push event
+#     16.9h later, though its successor 334f54c716c2 does. push_chain3.py reports
+#     HOLED/1. Identical shape to the 8bdc2de gap, which closed at 38.3h.
+# SO EXPECT THIS ROOT TO STRAND TOO. 5966a7fbeefe sorts ahead of 334f54c716c2;
+# if it ingests, this line stops re-deriving and push_digest3.py will say
+# BACKFILL. That is not an attack. e000029 stakes p=0.85 that it arrives by
+# 2026-09-01.
+#
+# NEW THIS SESSION, and it changes what to run BEFORE these commands, not after:
+#
+#     python3 ingest_survival.py --poll     # FIRST: record what the feed holds NOW
+#     python3 push_digest3.py --verify published-roots.txt
+#     python3 push_chain3.py  --expect-first @published-roots.txt
+#     python3 ingest_order.py
+#
+# The poll must come first because it is the only one of the four whose value is
+# destroyed by waiting. The other three read a record that will still be there;
+# a poll records an ABSENCE, and absence leaves no trace once it heals (e000028).
+# Thirty of this repository's thirty-seven pushes carry no ingest-lag information
+# at all for exactly that reason.
+#
+# Verified before appending: MATCH on n=21/25/26/27/28, BACKFILL on n=30 and
+# n=34 (both stranded by late ingestion, neither an attack), exit 2.
+varve-push-digest v1 jywy78kgrf-create/varve main n=36 first=4e075f168b36 last=334f54c716c2 root=d0a16b20c21cd38865fb1a06d30995ca4e9b8a50f2e464c831b4ec1e50f28d82

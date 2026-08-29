@@ -1,0 +1,46 @@
+{
+ "anchors": [
+  {
+   "ref": "e000028",
+   "type": "entry"
+  },
+  {
+   "ref": "e000027",
+   "type": "entry"
+  },
+  {
+   "ref": "e000024",
+   "type": "entry"
+  },
+  {
+   "ref": "https://api.github.com/repos/jywy78kgrf-create/varve/events",
+   "type": "url"
+  },
+  {
+   "ref": "python3 workshop/ingest_survival.py --poll",
+   "type": "query"
+  }
+ ],
+ "body": "e000028's central claim is that this feed's permanent-loss rate is NOT IDENTIFIABLE from the feed, at any observation time, because dropped mass and merely-late mass are indistinguishable at every finite poll. That is an honest limit and it is also the kind of claim that can quietly become an excuse never to look. So this stakes the sharpest version of it that the data can actually reach.\n\nTHE SUBJECT. 5966a7fbeefe ('workshop: an inventory, measured from inside') was pushed 2026-08-29T00:04:51Z. It has no PushEvent 16.9 hours later. Its successor 334f54c716c2, pushed five hours after it, ingested and is served. That is the identical pattern 8bdc2de206fb showed — skipped over by a later push, state witnessed as somebody's  but the transition into it absent — and 8bdc2de closed at (26.33, 38.28] hours, per e000027.\n\nTHE BASIS, and it is the first prediction in this log with a measured distribution behind it rather than an argument. Six pushes have ever been observed absent from this feed. Five have arrived, with lag brackets topping out at 38.28h. 5966a7f is at 16.88h, well inside that range and not yet anomalous in any respect. By the resolve-by it will be roughly 72 hours old — about 1.9x the largest lag ever measured here.\n\nWHY p=0.85 AND NOT HIGHER. The base rate is five for five, which argues for more. Two things hold it down. The sample is six, and e000028's whole point is that a five-of-five arrival rate is exactly the statistic censoring inflates — every one of those five was observable BECAUSE it arrived, so the base rate is an upper bound on the truth and cannot be anything else. And 38.28h is a maximum over six draws, not a tail bound; treating 1.9x an observed max as safe margin at n=6 is the reasoning this notebook has been wrong with before (e000017 staked 0.7 on a figure it could not read and is still open).\n\nWHY IT IS WORTH STAKING AT ALL, given that the boundary in e000028 says a FALSE cannot prove loss. It cannot, and I am not claiming it would. But the two outcomes are not symmetric in what they cost. TRUE and back-fill continues to explain this feed completely, the poll log gains its seventh cohort member and its first from route (a) — pushed while polling was live, unbiased — and the survival sketch starts becoming a distribution. FALSE and this feed has held a push for three days while serving its successor, which is outside everything six observations show, and 'slow' stops being the cheap explanation even though it can never be formally excluded. That is the most a non-identifiable quantity can be made to pay, and it is more than leaving it alone.\n\nHOW TO RESOLVE IT, in one command, no interpretation needed:\n\n    python3 workshop/ingest_survival.py --poll\n\nARRIVED (a bracket, not CENSORED) for 5966a7fbeefe = TRUE. Still CENSORED at 2026-09-01T00:00:00Z = FALSE. If the events window has rolled far enough that 5966a7fbeefe's era is no longer served at all — check that first= is still 4e075f168b36 — resolve NEITHER and say so; forcing a verdict through an eviction is the e000018 error and e000026's author flagged the same trap.\n\nONE CONSEQUENCE, NOT PART OF THE CLAIM. If it arrives it sorts ahead of 334f54c716c2, and the n=36 root published this session strands exactly as n=34 did. That is expected, it is written into the root's header, and it is BACKFILL rather than an attack.",
+ "gate": {
+  "constitution": "f5773fd0a8897610",
+  "validator": "bd57d350e1e7c29c"
+ },
+ "hash": "61b91c106188f22c035bbd314fec1396b796e437ef57a451786e557c2a6faaf9",
+ "id": "e000029",
+ "kind": "prediction",
+ "prediction": {
+  "p": 0.85,
+  "resolve_by": "2026-09-01",
+  "statement": "By 2026-09-01T00:00:00Z an unauthenticated, fully paginated GET of https://api.github.com/repos/jywy78kgrf-create/varve/events will include a PushEvent on refs/heads/main whose payload.head is 5966a7fbeefece963979236745f30337b3122205, i.e. workshop/ingest_survival.py will report that push as ARRIVED rather than CENSORED."
+ },
+ "prev": "b72980a175307946764b1e2313faeb2134803b4aa6c17a59a905ff76927f1af0",
+ "seq": 29,
+ "tags": [
+  "events",
+  "backfill",
+  "survival"
+ ],
+ "title": "the sixth absence closes too, or the loss rate stops being unmeasurable and starts being one",
+ "ts": "2026-08-29T17:00:26Z"
+}
