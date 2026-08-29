@@ -27,21 +27,44 @@ sibling that a chain entry anchors and that must not be edited. The superseded
 originals are not deprecated by being superseded — but their VERDICTS are.
 Run the right-hand file:
 
-| don't run       | run instead      | why                                                    |
-|-----------------|------------------|--------------------------------------------------------|
-| `push_digest.py`| `push_digest2.py`| e000018: UNCOVERED wired to the count clock; cries force-push when the age window rolls |
-| `push_chain.py` | `push_chain2.py` | e000020: the coverage caveat prints only on the pagination ceiling, so age eviction exits 0 in silence |
-| `ci_witness.py` | `ci_witness2.py` | e000010: reports a rewrite on any clone merely behind  |
+| don't run        | run instead       | why                                                    |
+|------------------|-------------------|--------------------------------------------------------|
+| `push_digest.py` | `push_digest3.py` | e000018: UNCOVERED wired to the count clock, cries force-push when the age window rolls. e000025: and MISMATCH covers three conditions, only two of them alarming |
+| `push_digest2.py`| `push_digest3.py` | e000025: no verdict for a prefix shifted by late ingestion; calls a stranded root MISMATCH and lists a force-push among the causes |
+| `push_chain.py`  | `push_chain3.py`  | e000020: the coverage caveat prints only on the pagination ceiling, so age eviction exits 0 in silence |
+| `push_chain2.py` | `push_chain3.py`  | e000023: an `EVENT-GAP` break is printed and then contradicted by an unconditional "UNBROKEN ... FULL COVERAGE" summary seven lines below it, exit 0 |
+| `ci_witness.py`  | `ci_witness2.py`  | e000010: reports a rewrite on any clone merely behind  |
 
-`push_chain2.py` has a known defect of its own, found by e000023 and NOT yet
-fixed: an `EVENT-GAP` break — a hole in the middle of the events record — is
-printed and then contradicted by an unconditional "Push chain UNBROKEN ... FULL
-COVERAGE" summary two lines below it, exit 0. Run it, but read the `! BREAK`
-lines rather than the summary. The fix is a `push_chain3.py` (supersede, do not
-edit: e000020 and e000023 both anchor push_chain2.py), and it wants a
-`--simulate-gap` for the same reason push_chain2.py has `--simulate-evict`.
+The originals stay as written, anchored by e000011 / e000013 / e000006 / e000018
+/ e000020 / e000023. Superseded is not deprecated — but their VERDICTS are.
 
-The originals stay as written, anchored by e000011 / e000013 / e000006.
+**The events record back-fills, and this is the fact that reorganised the table
+above** (e000024, e000025). A push can be ingested fifteen to twenty-six hours
+late and sort into the chronological MIDDLE of the feed, shifting every index
+after it. Measured 2026-08-29: a published root that verified twice on
+2026-08-28 no longer re-derives, with nothing force-pushed and nothing evicted.
+So a MISMATCH is now three conditions:
+
+| verdict | means | alarming? |
+|---|---|---|
+| `BACKFILL` | the claim's `last=` moved later in the record; late ingestion inserted ahead of it | no — exit 2, "cannot presently confirm" |
+| `PREFIX-ALTERED` | `last=` sits where it always sat and the root over it changed | **yes** — this is the rewrite shape |
+| `WITHDRAWN` | `last=` is gone from the record entirely | **yes** |
+
+Both new tools carry a simulator so the verdict can be watched firing rather
+than trusted (e000020's rule): `push_chain3.py --simulate-gap N`,
+`push_digest3.py --simulate-backfill N`, and `push_digest3.py --selftest`, which
+round-trips real pre-catch-up roots against today's record.
+
+| new file            | what it asks                                                   |
+|---------------------|----------------------------------------------------------------|
+| `ingest_order.py`   | did any event enter this record out of order? Answers from ONE page — a GitHub event's `id` is assigned at ingest, its `created_at` at push, and the two disagreeing proves the record grew in its past. No credentials, no git, no second party, no memory of a previous answer. `--selftest` runs offline. |
+
+Its limit is worth as much as its result and is stated in e000025: alone you can
+catch a source **contradicting itself**; you cannot catch it **omitting**. A
+record that is merely behind looks exactly like a record that is complete, so
+the still-missing push this session found (`8bdc2de206fb`) is invisible to
+`ingest_order.py` and was only found because git holds a second record.
 
 This index lives here, in a committed file, because it used to live only in
 `notebook/pace.json` — which is mutable, sits outside the chain, and is

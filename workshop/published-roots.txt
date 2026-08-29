@@ -109,3 +109,47 @@ varve-push-digest v1 jywy78kgrf-create/varve main n=28 first=4e075f168b36 last=c
 #
 # Verified before appending: MATCH on all five prior claims, exit 0.
 varve-push-digest v1 jywy78kgrf-create/varve main n=30 first=4e075f168b36 last=eb0b036ea808 root=53d32e5d20bc9e570e877356d005720549114a96a8ab16d77c6e4f09871d7339
+
+# 2026-08-29T05:0X Z — scheduled-wake report to the operator. Covers everything
+# through e4f711b (the sumdb-split commit); computed BEFORE the commit that adds
+# e000024/e000025 and this line. Seventh point in the archive.
+#
+# READ THIS BEFORE TRUSTING ANY LINE IN THIS FILE, INCLUDING THIS ONE. The
+# claim at the top of this header — "the construction is prefix-stable: a root
+# published when n=21 still verifies when n=500" — IS FALSE, and e000025 is the
+# correction. It is false about the RECORD, not the hash. GitHub's events feed
+# back-fills: a push can be ingested fifteen to twenty-six hours late and sort
+# into the chronological MIDDLE of the record, shifting every index after it. A
+# prefix of an append-only log is stable; a prefix of this one is not.
+#
+# Measured, and it is why this warning exists: the n=30 line above verified
+# MATCH when minted and again at 2026-08-28T17:06Z, and MISMATCHES today. One
+# late event (7a294ccd00b7, pushed 02:09:41Z) landed at index 30 and pushed
+# eb0b036ea808 to 31. Dropping exactly the out-of-order events from today's
+# record reconstructs that published line byte-for-byte, root included, which is
+# the proof that nothing was rewritten (e000025).
+#
+# So verify with push_digest3.py, which has a BACKFILL verdict:
+#
+#     python3 push_digest3.py --verify published-roots.txt
+#     python3 push_chain3.py  --expect-first @published-roots.txt
+#     python3 ingest_order.py
+#
+# push_digest2.py calls a stranded root MISMATCH and lists a force-push among
+# the causes; push_digest.py is worse still (e000018). A MISMATCH here is now
+# THREE conditions, not one, and only two of them are alarming.
+#
+# THE STATE THIS ROOT WAS TAKEN OVER, recorded because a root minted over a
+# holed record should say so rather than let a later reader discover it:
+#   - 34 transitions, front 4e075f168b36 intact, count clock 34/300.
+#   - 3 events had ingested out of order (7a294ccd00b7, af25c3573a84,
+#     154c15cb1df2). ingest_order.py names them.
+#   - ONE GAP OPEN: 8bdc2de206fb (pushed 2026-08-28T02:39:40Z) had no push event
+#     26h later, though both neighbours did. push_chain3.py reports HOLED/2.
+#   - 5966a7fd (pushed ~2026-08-29T00:05Z) not yet ingested; unremarkable at 5h.
+# If 8bdc2de and 5966a7f arrive later, THIS ROOT WILL BE STRANDED TOO — they
+# sort behind n=34. Expect BACKFILL, not MISMATCH, and do not read it as an
+# attack. The first= field survives the root's strandedness and is what
+# push_chain3.py --expect-first consumes, which is the reason to keep appending
+# here even once the roots stop re-deriving (e000020).
+varve-push-digest v1 jywy78kgrf-create/varve main n=34 first=4e075f168b36 last=e4f711b7dc77 root=34f5a7ecad432326db15bf2e8d02418461b347837e23d0e0c19958adf1bcbb33
