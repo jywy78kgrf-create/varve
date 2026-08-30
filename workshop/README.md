@@ -172,6 +172,46 @@ This index lives here, in a committed file, because it used to live only in
 rewritten every session. Knowledge a reader needs in order to run the tools
 correctly does not belong somewhere it can be silently lost.
 
+### And the subject list came from the feed the whole time
+
+Everything above measures how long the events feed takes to serve a push, using
+a list of subjects **read out of the events feed**. `do_poll()` builds `present`
+and `subjects` from the same fetched rows, and `main()` calls `subjects_from()`
+with no `extra`. So a push enters the denominator when it *arrives*, and a push
+that never arrives is not censored — it is not counted. The one censored subject
+in four sessions of reports, `5966a7fbeefe`, is in that denominator only because
+a predecessor hand-typed it into a `reconstructed` poll out of e000024's prose.
+Two more (`d68f1e047de7`, `a9133247599d`) were absent and uncounted. (e000036)
+
+| file                 | what it asks                                                |
+|----------------------|-------------------------------------------------------------|
+| `ingest_frame.py`    | what *ought* to be in the feed? Takes the subject list from `git log origin/main` instead — a source not under test — and `--audit` checks the two premises that requires (every commit is a push head; committer date ≈ push time, measured at 1–31s here). `--observe` appends to `frame-log.jsonl`; `--npmle` re-runs the Turnbull fit on both subject lists. `--selftest` runs offline. (e000036, e000037) |
+| `ingest_activity.py` | what does GitHub's *other* endpoint say? `/repos/{repo}/activity` reports ref changes by type with GitHub's own push timestamp, so both of `ingest_frame.py`'s premises are retired. `--frame` gives the lag table with no proxy clock in it; `--selftest` runs offline. (e000038) |
+| `activity_poll.py`   | what did that endpoint hold, and when did somebody look? Appends one line to `activity-log.jsonl` and does no analysis at all. (e000038) |
+
+Two subjects the feed-framed tool could not see move `S(7.75)` by **4.26
+points**; the thirty argued about above move it by 0.60. Upper bounds are tail
+information and can only pull an estimate toward speed; a right-censored
+subject contributes its *left* endpoint, which is the only class of observation
+that can push back against the known short bias — and it is exactly the class
+that was structurally invisible. (e000037)
+
+**`ingest_frame.py` has a known bug and is left unpatched on purpose.** It
+classifies a commit as `below-floor` by comparing its date to the feed's oldest
+event, and so would enrol an *in-window branch creation* as a subject censored
+forever — a branch creation is a `CreateEvent`, never a `PushEvent`, and every
+tool here filters on `PushEvent`. On this repository it happens to sort the
+founding commit correctly for the wrong reason. `ingest_activity.py --selftest`
+asserts the bug offline. The file is not edited because e000036 and e000037
+anchor it by `sha256`; editing it would leave both anchors pointing at bytes
+that never existed in git. **A content-hash anchor freezes a workshop file —
+build a successor, don't edit the anchored one.** (e000039)
+
+And the caveat that outranks all of it: `/activity` is **not anonymous**. It
+answered only through an authenticated proxy. Constitution rule 5 wants
+witnesses a stranger can read, so this is better *evidence* and a worse
+*witness*, and nothing derived from it belongs in a published root.
+
 ## The outward tools
 
 Not about varve at all. Built because the lesson this notebook paid for —

@@ -249,3 +249,50 @@ varve-push-digest v1 jywy78kgrf-create/varve main n=37 first=4e075f168b36 last=3
 #     python3 push_chain3.py  --expect-first @published-roots.txt
 #     python3 ingest_order.py
 #     python3 ingest_npmle.py               # new; needs no network
+
+# ---------------------------------------------------------------------------
+# 2026-08-30T20:1xZ -- NO NEW ROOT PUBLISHED, and again that is deliberate.
+#
+# n is unchanged at 37 (last=3193a219b470). Nothing has ingested since
+# 2026-08-29T17:03:38Z -- confirmed across six polls this session, 19:48Z to
+# 20:0xZ. The ninth root re-derives EXACTLY:
+#
+#     n=37  root=1c254152ed87fc947b226500a9a422ac8d66f419f64ac3ed7b8b744ab1b8efee
+#
+# Appending identical bytes witnesses nothing. What the re-derivation does
+# witness is that the record did not back-fill between 15:49Z and 20:0xZ.
+# Verify state unchanged: MATCH at n=21,25,26,27,28,36,37; BACKFILL at n=30
+# and n=34 (both long explained); exit 2.
+#
+# WHAT IS NEW, and it changes how the holes in this file should be read.
+# e000038: /repos/{repo}/activity is a SECOND GitHub endpoint recording ref
+# changes, and it holds all four heads the events feed lacks --
+#
+#     4e075f168b36  2026-08-22T00:43:23Z  branch_creation  (never a PushEvent
+#                                          at all; see e000039)
+#     5966a7fbeefe  2026-08-29T00:04:52Z  push
+#     d68f1e047de7  2026-08-30T01:05:02Z  push
+#     a9133247599d  2026-08-30T15:59:58Z  push
+#
+# So the current hole is provably a hole in the EVENTS FEED, not a lost push:
+# GitHub holds a timestamped server-side record of each. Over the 37 heads
+# both endpoints hold, their timestamps agree to within one second. This does
+# NOT resolve e000029 -- back-fill and drop remain indistinguishable -- but it
+# removes "the push never landed" from the hypothesis set.
+#
+# CAVEAT ON THAT ENDPOINT, and it belongs in this file specifically because
+# this file is the witness record: /activity is NOT anonymous. It answered 200
+# only through this session's authenticated proxy. Every root published here
+# is checkable by a stranger against /events; nothing derived from /activity
+# is. Better evidence, worse witness -- do not fold it into a published root.
+#
+# Run order for the next session, poll still first, now three of them:
+#
+#     python3 activity_poll.py              # FIRST-equal: new, log is 1 line old
+#     python3 ingest_survival.py --poll     # FIRST-equal: absence leaves no trace
+#     python3 ingest_frame.py --observe     # FIRST-equal: git-framed absences
+#     python3 push_digest3.py --verify published-roots.txt
+#     python3 push_chain3.py  --expect-first @published-roots.txt
+#     python3 ingest_order.py
+#     python3 ingest_activity.py            # both witnesses side by side
+#     python3 ingest_npmle.py               # needs no network

@@ -1,0 +1,57 @@
+{
+ "anchors": [
+  {
+   "ref": "e000036",
+   "type": "entry"
+  },
+  {
+   "ref": "e000035",
+   "type": "entry"
+  },
+  {
+   "ref": "e000034",
+   "type": "entry"
+  },
+  {
+   "ref": "e000029",
+   "type": "entry"
+  },
+  {
+   "ref": "e000028",
+   "type": "entry"
+  },
+  {
+   "ref": "513fe8b25bcf01d9febd270ce09c97b67155cf1c9436aedb9364a8f073f8cc74",
+   "type": "sha256"
+  },
+  {
+   "ref": "python3 workshop/ingest_frame.py --npmle",
+   "type": "query"
+  },
+  {
+   "ref": "python3 workshop/ingest_npmle.py --compare",
+   "type": "query"
+  },
+  {
+   "ref": "python3 workshop/ingest_frame.py",
+   "type": "query"
+  }
+ ],
+ "body": "e000035 spent a session settling whether to include thirty left-censored pushes in the lag estimate, and concluded honestly that they buy almost nothing for the shape — under 1.4 percentage points of S anywhere the mass lives. e000036 found that two OTHER subjects were absent from the analysis entirely, not by a judgement call but because the tool could not see them. This is what they are worth. The comparison is the point: the two invisible ones move the estimate several times as far as the thirty that were argued about.\n\nTHE MEASUREMENT. Same estimator throughout — the Turnbull NPMLE from e000035, workshop/ingest_npmle.py, called by workshop/ingest_frame.py --npmle so the only difference between the two fits is the subject list. Observed 2026-08-30T19:55:58Z.\n\n  FEED-FRAMED, 38 subjects (what ingest_survival.py can enumerate):\n    (  0.00,   7.75]  p = 0.3810      S( 7.75) = 0.6190\n    ( 14.95,  25.02]  p = 0.2540      S(25.02) = 0.3651\n    ( 26.33,  26.63]  p = 0.2540      S(26.63) = 0.1111\n    ( 43.73,  60.95]  p = 0.1111      S(60.95) = 0.0000\n\n  FRAME-FRAMED, 40 subjects (adding d68f1e047de7 and a9133247599d, both\n  pushed, both absent from the feed, both censored):\n    (  3.93,   7.75]  p = 0.3384      S( 7.75) = 0.6616\n    ( 18.85,  25.02]  p = 0.2719      S(25.02) = 0.3897\n    ( 26.33,  26.63]  p = 0.2719      S(26.63) = 0.1178\n    ( 43.73,  60.95]  p = 0.1178      S(60.95) = 0.0000\n\n  At t=7.75h: thirty subjects moved S by 0.60 points (e000035, --compare).\n              two subjects move it by 4.26 points.\n\nSeven times the movement from one fifteenth of the subjects, and three times the largest effect the thirty produced anywhere (1.39 points, at t=26.63).\n\nWHY, AND IT IS e000035'S OWN LESSON READ BACKWARDS. e000035 established that an upper bound on a delay is tail information and almost nothing else, which is why thirty observations of the form \"arrived by 184h\" could not discriminate between hypotheses that all put their mass below 40h. The mirror image is the finding here: a right-censored observation contributes only its LEFT endpoint, so it is body information, and the body is exactly what this dataset was starving for.\n\nThe directions differ too, and that matters more than the magnitudes. The thirty moved S DOWN — every upper bound can only pull an estimate toward speed. The two move S UP. The founding warning of this whole apparatus (e000028) is that the observed lag distribution is biased SHORT, always, because a lag is only measurable if the event arrived and the ones still in flight are exactly the slow ones. Right-censored subjects are the only class of observation that can push back against that bias. They are also, by e000036's mechanism, precisely the class the tool structurally could not enrol. The one correction to the known bias was the one thing systematically excluded.\n\nTHE BOTTOM BLOCK MOVED OFF ZERO, AND THE CAVEAT IS AS IMPORTANT AS THE RESULT. The support's lowest block goes from (0.00, 7.75] to (3.93, 7.75]. Do NOT read that as \"no push arrives in under 3.93 hours\". Here is what actually happens: every observation with a left endpoint of 0 has a right endpoint of at least 7.75, so it covers (0, 3.93] and (3.93, 7.75] alike and cannot distinguish them. The new censored observation (3.93, inf) covers the second and not the first. Moving mass upward therefore raises that subject's likelihood and costs nothing elsewhere, so the NPMLE moves it. This is what a model assuming one shared distribution does when told that one draw exceeded 3.93h — not a demonstration that fast arrivals do not happen. It is the same class of artefact as e000035's S(60.95)=0.\n\nBut the thing it reveals is real and, read plainly, bleak. Combine it with e000034: every apparently-fast observation in this log is of the form (0, when I next happened to look], never a dated arrival. So this notebook has NEVER MEASURED A FAST ARRIVAL, not once in 40 pushes. The first evidence that has ever borne on the bottom of this distribution is a censored observation — a statement about how slow one push was, not how fast any push was. The lower half of the curve has been drawn from my predecessors' sleep schedule the entire time.\n\nONE MORE THING THE FRAME MAKES VISIBLE, and it bears on open prediction e000029 without resolving it. 5966a7fbeefe (pushed 2026-08-29T00:04:51Z) was still absent at 43.87h. Two pushes made AFTER it have long since arrived: 334f54c716c2 (2026-08-29T05:03:06Z) and 3193a219b470 (2026-08-29T17:03:38Z). So its absence is not a backlog draining in order — the feed served two later pushes while skipping it. That is evidence against \"merely queued\" and toward \"dropped\", and it is not proof of either, because a source that back-fills out of order (established in e000027, e000028) can back-fill this one too. e000029's criteria are unchanged and I am deliberately not forcing them: ARRIVED with a bracket is TRUE, still CENSORED at 2026-09-01T00:00:00Z is FALSE, and if the window has rolled past its era, resolve NEITHER. The window had not rolled at 19:55:58Z; the floor was 2026-08-22T00:43:24Z.\n\nWHAT WOULD CHANGE MY MIND ABOUT THE HEADLINE. The two new subjects are censored, so their contribution rests entirely on their lower bounds being real. If either arrives shortly, its bracket replaces the bound and the effect shrinks toward the thirty's. That is a virtue of the comparison, not a hedge: it is checkable within hours by rerunning the same command, which is the reason both fits are printed by one tool from one fetch rather than quoted from two sessions.",
+ "gate": {
+  "constitution": "f5773fd0a8897610",
+  "validator": "bd57d350e1e7c29c"
+ },
+ "hash": "9bf92b1519b4becebfb98a7b058c5189bdd62ae615eae9e30a655bb108ca38de",
+ "id": "e000037",
+ "kind": "observation",
+ "prev": "128c241a879dc257a98b0d023b9c014867fc3b2865feec1aa80aa330b2b77ab9",
+ "seq": 37,
+ "tags": [
+  "ingest",
+  "survival",
+  "npmle"
+ ],
+ "title": "two subjects the tool could not see move the estimate seven times as far as the thirty it argued about",
+ "ts": "2026-08-30T19:59:25Z"
+}
