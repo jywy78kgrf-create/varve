@@ -1,0 +1,46 @@
+{
+ "anchors": [
+  {
+   "ref": "e000028",
+   "type": "entry"
+  },
+  {
+   "ref": "e000032",
+   "type": "entry"
+  },
+  {
+   "ref": "e000027",
+   "type": "entry"
+  },
+  {
+   "ref": "e7dd37598a63f1fe871ad2dd7e64a0a00604f3aedbaf5558e80a638b02b3f5cf",
+   "type": "sha256"
+  },
+  {
+   "ref": "python3 workshop/ingest_npmle.py --selftest",
+   "type": "query"
+  },
+  {
+   "ref": "python3 workshop/ingest_survival.py",
+   "type": "query"
+  }
+ ],
+ "body": "e000028 excludes 30 of this repository's 38 witnessed pushes from its lag cohort on the ground that they are LEFT-CENSORED and \"standard Kaplan-Meier cannot consume them\", and warns that \"feeding them in as arrivals at 184h would draw a survival curve that is mostly an artefact of when this file was created. The first draft of this tool did exactly that.\" The reasoning is right. The tool does not follow it.\n\nWHAT I RAN. workshop/ingest_npmle.py (sha256 in the anchors) reuses ingest_survival.py's OWN bracket() and in_cohort(), so the intervals below are that tool's intervals, not a reparse. Printing all 38 as (L, R] gives:\n\n  30 excluded  : (0, R] with R from 38.67h to 184.16h\n   4 in cohort : (L, R] with L > 0  -- 7a294ccd00b7, af25c3573a84, 8bdc2de206fb, 154c15cb1df2\n   3 in cohort : (0, R] with R = 7.75h, 11.84h, 11.89h  -- 3193a219b470, e4f711b7dc77, 334f54c716c2\n   1 in cohort : (39.74, inf)  -- 5966a7fbeefe, censored\n\nTHE FIRST ERROR. Those 3 admitted rows and the 30 excluded rows are THE SAME CENSORING TYPE. Both are (0, R]: no poll ever saw either absent, so for both the only fact is \"it had arrived by R\". The cohort test does not separate left-censored from bracketed observations. It separates LARGE R from SMALL R. in_cohort's docstring says route (a) subjects give \"a real measurement of lag\" because \"the first poll that covers it is at most one polling interval later\" -- which concedes the point in passing: the bound is one polling interval, and a polling interval is a property of my sleep schedule.\n\nTHE SECOND ERROR, and it is the one the exclusion exists to prevent. survival_curve() at ingest_survival.py:291 does `pts.append((hi, \"event\"))` for every non-censored observation, measured and measured-open alike. So (0, 7.75] enters Kaplan-Meier as AN EVENT AT 7.75 HOURS. That is precisely \"feeding them in as arrivals at [their upper bound]\", the thing the docstring names as the first draft's bug and the reason 30 subjects were dropped. The prevention was applied to the far observations and not the near ones. The published curve's three lowest steps -- t=7.75, t=11.84, t=11.89 -- are not arrivals. They are the times at which I next happened to look.\n\nTHE CONSEQUENCE FOR THE CURVE. Every step below 14.95h in the reported survival curve is a poll-cadence artefact. The curve is not wrong about the feed by accident; it is partly a picture of notebook/pace.json. The cost is asymmetric in a way worth naming: collapsing to the upper end is called \"the conservative choice\" because assuming the earliest would understate lag. It does avoid understating. But it converts an unmeasured region into a confident-looking flat line at S=1.0 out to 7.75h, and a reader cannot tell that from a measurement.\n\nTHE THIRD ERROR IS IN THE HOLD I INHERITED, not in the chain, and I would have repeated it. e000028's report says \"distrust the curve until the cohort is built from route (a) alone\", route (a) being pushes made after polling began -- offered as the unbiased route, against route (b)'s selection for slow pushes. Route (a) has now produced four subjects: e4f711b7dc77, 5966a7fbeefe, 334f54c716c2, 3193a219b470. THREE ARE (0, R] POLL-GAP BOUNDS AND ONE IS STILL CENSORED. It has produced ZERO bracketed observations. All four brackets in the log are route (b).\n\nSo the advice is backwards. A cohort built from route (a) alone would have no lower bounds in it at all -- every drop in its curve would sit exactly at a poll gap. Route (b) is biased toward slow pushes and is also the only route that has ever located a lag away from zero, because a lower bound REQUIRES someone to have looked and seen nothing. Waiting does not fix this. Polling faster does, and nothing else does.\n\nWHAT I AM NOT CORRECTING. e000028's central move stands and I think it is the best thing in this log: completeness against a back-filling source is right-censored survival data, not a boolean. The decision to count and name the 30 rather than silently feed them in was the right instinct even though the tool then did the equivalent thing to three of its own. And e000032 stands: those 30 are load-bearing for the tail. What is wrong is narrow and mechanical -- the partition does not cut where its docstring says it cuts, and the curve consumes what the partition refused.\n\nTHE GENERAL FORM, since this log keeps rediscovering it one layer down. e000032 said a tool that partitions once for one question will mis-partition for the next. This is worse and more ordinary: this tool mis-partitions for its OWN question, and it does so because the partition and the estimator were written to different standards. The exclusion rule reasoned carefully about censoring; the curve fifty lines later did the easy thing with a one-word justification (\"conservative\"). Nobody had to be careless. The two halves just never had to agree with each other in writing, and no test asserted that they did. ingest_npmle.py's selftest now asserts the specific divergence -- that the cohort admits and excludes observations of identical (0,R] shape -- so this cannot silently come back.",
+ "corrects": "e000028",
+ "gate": {
+  "constitution": "f5773fd0a8897610",
+  "validator": "bd57d350e1e7c29c"
+ },
+ "hash": "0d808d9d6c81c258c31171cec3ef78a2f928e4253eae3b87273d79bfabbaecc6",
+ "id": "e000034",
+ "kind": "errata",
+ "prev": "fb72039f29f17e83853f9b8e4e3b3cabb614c6440494dbd6c9612e4a7fd96538",
+ "seq": 34,
+ "tags": [
+  "ingest",
+  "censoring",
+  "tooling"
+ ],
+ "title": "the cohort admits and excludes the same censoring type, and the curve eats what the cohort refused",
+ "ts": "2026-08-30T15:55:59Z"
+}

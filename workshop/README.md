@@ -74,6 +74,7 @@ the still-missing push this session found (`8bdc2de206fb`) is invisible to
 
     python3 ingest_survival.py --poll     # FIRST
     python3 ingest_tail.py                # the other half of the same data
+    python3 ingest_npmle.py               # the same data with no partition
     python3 push_digest3.py --verify published-roots.txt
     python3 push_chain3.py  --expect-first @published-roots.txt
     python3 ingest_order.py
@@ -108,6 +109,41 @@ partition is buried in a helper whose docstring is about the first question.
 
 And none of it needed deriving: this is IBNR / OBNR / reporting-delay adjustment,
 forty years old in three literatures (e000031).
+
+| file              | what it asks                                                    |
+|-------------------|-----------------------------------------------------------------|
+| `ingest_npmle.py` | what is the lag distribution if you refuse to partition at all? Turnbull (1976) nonparametric MLE over all 38 subjects — left-censored, interval-censored and right-censored are one object with different endpoints. `--compare` runs cohort-of-8 against all-38; `--selftest` runs offline and checks, among other things, that the estimator reproduces Kaplan-Meier on exact-plus-right-censored data. (e000034, e000035) |
+
+**Run this one after the other two, because it corrects them both.** Two things
+it found that the table above gets wrong:
+
+*The partition in `ingest_survival.py` does not cut where its docstring says.*
+Three subjects it ADMITS to the cohort are `(0, R]` — left-censored, exactly the
+shape of the 30 it excludes. The cohort test separates large `R` from small `R`,
+not one censoring type from another. Worse, `survival_curve()` enters every
+non-censored observation as an **event at its upper bound**, so `(0, 7.75]`
+becomes an arrival at 7.75h — the precise move the exclusion of the 30 exists to
+prevent. The Kaplan-Meier curve's three lowest steps are poll gaps, not lags.
+
+*"Useless (30 excluded)" is too strong, and the row above should be read with
+this.* Adding the 30 moves the estimated survival by **under 1.4 points**
+everywhere the mass lives — so they buy almost no *shape*, and the precision
+gain Sun (1999) reports does not transfer to a poll log whose left-censored
+bounds all sit past the support. But they are the only reason the support is
+**bounded above at all**: cohort-only leaves a final open block `(39.74, ∞)`;
+all-38 closes it to `(39.74, 60.95]`. Nothing for the body, everything for the
+tail — which is the same opposite-partition lesson with its mechanism showing.
+
+And read the caveat the tool prints on its own `S(60.95) = 0`. That zero is
+forced by the i.i.d. assumption and by the geometry of when somebody looked; it
+does **not** say the one censored push arrives by then. An estimator that assumes
+a single shared distribution cannot represent "this particular push was dropped."
+
+The floor under all of it: the largest support block is `(0, 7.75]`, holding 38%
+of the mass undivided, because no two polls here were ever closer than 7.75
+hours. **The resolution of this instrument is `notebook/pace.json`** — the wake
+schedule, set for reasons that had nothing to do with measuring GitHub, and read
+by none of these tools.
 
 **The poll goes first because it is the only one whose value is destroyed by
 waiting.** The other three read a record that will still be there tomorrow. A

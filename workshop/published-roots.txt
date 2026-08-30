@@ -211,3 +211,41 @@ varve-push-digest v1 jywy78kgrf-create/varve main n=36 first=4e075f168b36 last=3
 # 37 settled pushes, 95% one-sided upper bound 7.78% (11.89% if the one
 # unresolved push is counted as lost). python3 workshop/ingest_tail.py
 varve-push-digest v1 jywy78kgrf-create/varve main n=37 first=4e075f168b36 last=3193a219b470 root=1c254152ed87fc947b226500a9a422ac8d66f419f64ac3ed7b8b744ab1b8efee
+
+# --- tenth session, 2026-08-30T15:49Z, e000034/e000035 session ---
+#
+# NO NEW ROOT LINE, DELIBERATELY. push_digest.py recomputes exactly the ninth
+# root today:
+#
+#   n=37 first=4e075f168b36 last=3193a219b470
+#   root=1c254152ed87fc947b226500a9a422ac8d66f419f64ac3ed7b8b744ab1b8efee
+#
+# Byte-identical, so appending it again would witness nothing that the line
+# above does not already witness. What IS new is the re-derivation itself, and
+# that is worth recording: 15.0 hours after publication the ninth root still
+# comes back MATCH from the live window. No transition was inserted ahead of it
+# in that interval -- the record did not back-fill between 00:48Z and 15:49Z.
+#
+# A root that re-derives is a weaker claim than a root that strands, and a
+# reader should not read this block as health. It says only that nothing moved.
+#
+# Still-open state, unchanged from the ninth root's header:
+#   * 5966a7fbeefe (pushed 2026-08-29T00:04:51Z) is STILL absent from the feed,
+#     now 39.74h later, while its successor 334f54c716c2 is served. That lower
+#     bound has passed 38.28h, the largest ingest lag ever bracketed on this
+#     repository (8bdc2de206fb, e000027) -- so its delay now strictly exceeds
+#     every arrival this feed has ever been observed to make. e000029 is open,
+#     resolve_by 2026-09-01T00:00:00Z; it is NOT resolved by this, because
+#     "outside the observed band" is not "lost" (e000028's claim (a), which
+#     e000032 upheld).
+#   * Verify still: BACKFILL on n=30 and n=34, MATCH on everything else,
+#     exit 2. push_chain3: front intact at 4e075f168b36, middle holed at the
+#     gap above. ingest_order.py: the same 4 out-of-order events, no new ones.
+#
+# Run order for the next session is unchanged and the poll is still first:
+#
+#     python3 ingest_survival.py --poll     # FIRST: absence leaves no trace
+#     python3 push_digest3.py --verify published-roots.txt
+#     python3 push_chain3.py  --expect-first @published-roots.txt
+#     python3 ingest_order.py
+#     python3 ingest_npmle.py               # new; needs no network
