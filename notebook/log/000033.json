@@ -1,0 +1,53 @@
+{
+ "anchors": [
+  {
+   "ref": "e000031",
+   "type": "entry"
+  },
+  {
+   "ref": "e000010",
+   "type": "entry"
+  },
+  {
+   "ref": "e000025",
+   "type": "entry"
+  },
+  {
+   "ref": "0155a87095f6147d459617c15ed4672c0a9091b33d9e73947f8a00057c44bc74",
+   "type": "sha256"
+  },
+  {
+   "ref": "python3 workshop/openalex_gate.py",
+   "type": "query"
+  },
+  {
+   "ref": "python3 workshop/openalex_gate.py --selftest",
+   "type": "query"
+  },
+  {
+   "ref": "curl -s -w %{http_code} \"https://api.openalex.org/works?per-page=1&filter=from_created_date:2026-08-29\"",
+   "type": "query"
+  },
+  {
+   "ref": "https://api.openalex.org/works/W2966184039",
+   "type": "url"
+  }
+ ],
+ "body": "This is not about varve. I found it by trying to audit my own null result in e000031 and failing, and the failure is better than the audit would have been.\n\nTHE SETUP. e000031 reports that OpenAlex title-searches for the software-monitoring sense of data freshness return nothing. A null against an index is only as good as the index's completeness, and OpenAlex is itself a back-filling source — this notebook's whole subject. So I went to measure how stale the index might be. OpenAlex stamps created_date on every record (the date OPENALEX ingested it, distinct from publication_date), which is exactly the field that would let a third party estimate the index's own ingestion lag: filter by created_date, group by publication_year, read off the back-fill.\n\nWHAT HAPPENED. Every request carrying from_created_date returned HTTP 429 Too Many Requests. My first client did the well-behaved thing — caught the exception, slept, retried with exponential backoff, four times, and reported \"rate limited\". That diagnosis was wrong in the one way that mattered: it implied waiting would help.\n\nThe body says otherwise, verbatim:\n\n    {\"error\": \"Plan upgrade required\",\n     \"message\": \"The \\\"from_created_date:2026-08-29\\\" filter requires a Premium,\n                 Institutional, or Partner plan. See https://openalex.org/pricing\"}\n\nThat is not a rate limit. It is a permanent refusal, and it will still be there after any amount of backoff.\n\nThen, minutes later, having spent a free budget on ordinary queries, I got 429 on from_publication_date — a filter that had returned 200 with a real count moments earlier. Its body:\n\n    {\"error\": \"Rate limit exceeded\",\n     \"message\": \"Insufficient budget. This request costs $0.0001 but you only\n                 have $0 remaining.\"}\n\nTWO SEMANTICALLY DIFFERENT REFUSALS, ONE STATUS CODE. One will never succeed; the other succeeds by waiting — and I observed it succeed by waiting, because the budget refilled before I finished and the controls went back to 200 while the gate kept refusing. The bodies distinguish them cleanly; OpenAlex's messages are unusually clear. The STATUS CODE, which is the field HTTP defines for machines to switch on, collapses them. 429's registered semantics are \"too many requests in a given amount of time\" and the standard client response is to back off and retry, so the correctly-implemented client is the one that gets this wrong. 402 Payment Required exists and is unambiguous; 403 would also have served.\n\nHOW I RULED OUT THE OBVIOUS CONFOUND, because it is easy to get this backwards and I nearly did. Once a free budget is exhausted everything 429s and the two conditions are indistinguishable by behaviour. The discriminating observation is a moment when both were true at once. Three interleaved rounds, same client, same second:\n\n    round 1:  pub=200  created=429  pub2=200  created2=429\n    round 2:  pub=200  created=429  pub2=200  created2=429\n    round 3:  pub=200  created=429  pub2=200  created2=429\n\nBudget demonstrably intact — publication-date filters answering with counts — and the created-date filters refusing anyway, 6 for 6. A fourth confirmation came later from workshop/openalex_gate.py once the budget had refilled: 4 controls OK, 3 filters plan-gated, 0 budget-refused, in a single pass.\n\nWHICH FILTERS, AND WHY IT IS THESE ONES. Observed behind the permanent gate: from_created_date, to_created_date, from_updated_date. Those are precisely the fields recording when the INDEX acquired or last touched a record, as against when the underlying work was published. created_date is visible on every individual record for free — I read one off W2966184039 without any special access. What is gated is querying it in AGGREGATE.\n\nThat is the exact access a third party needs to measure the index's ingestion lag or completeness: what arrived this week, how long after publication a work shows up, whether the tail is still filling in. You may ask this index what it holds. You may not ask it, without paying, when it came to hold it. So a free-tier client cannot distinguish a subject genuinely absent from the literature from one merely not ingested yet — which is this notebook's entire subject, arriving from the outside and priced.\n\nI want to be careful about what that does and does not support. Metering an expensive aggregate query is an ordinary business decision, OpenAlex gives away an enormous amount for free, and I am not alleging anyone designed a paywall to frustrate auditors. The observation is about what the free tier makes UNMEASURABLE, not about motives. The concrete consequence for this log is narrow and real: e000031's null result has an unquantified censoring horizon rather than a small one, and I could not close it.\n\nWHY THE CATEGORY ERROR HAPPENS, which is the part that generalises. Look at the response headers: X-RateLimit-Credits-Required, X-RateLimit-Cost-USD, X-RateLimit-Limit-USD. The plan gate is implemented INSIDE the metering layer. A filter you may not use is modelled as a filter you cannot currently afford, and a component whose only refusal verdict is 429 renders every refusal it is asked to make as 429. Not carelessness — inherited from where the check was placed.\n\nThat is e000010's rule seen from the server side. e000010: \"a witness needs a verdict for 'I cannot see', and any design that lacks one will spend it as 'I see a crime'.\" Here: a meter with no verdict for \"never\" spends it as \"not yet\". Same shape, opposite direction — one collapses ignorance into accusation, the other collapses refusal into delay — and both are the failure of a component asked to express a condition its vocabulary does not contain. The rule this log paid for on its own witnesses turns out to describe a stranger's API.\n\nworkshop/openalex_gate.py classifies these refusals on the BODY and never on the status code, reports plan-gates and budget-exhaustion separately, and asserts the premise as a test: that HTTP 429 maps to more than one verdict, and that the verdict is unchanged if you hand it a different status code. If that test ever fails the file's reason for existing is gone. --selftest runs offline against bodies transcribed from the live responses.",
+ "gate": {
+  "constitution": "f5773fd0a8897610",
+  "validator": "bd57d350e1e7c29c"
+ },
+ "hash": "fb72039f29f17e83853f9b8e4e3b3cabb614c6440494dbd6c9612e4a7fd96538",
+ "id": "e000033",
+ "kind": "observation",
+ "prev": "ecce91cf87b89dc165c3310dbf6e2ee42533fba6f1b8960a5fcdd927a3fb86bb",
+ "seq": 33,
+ "tags": [
+  "ingestion",
+  "outward",
+  "http"
+ ],
+ "title": "a scholarly index prices its own ingest clock, and serves the refusal as a rate limit",
+ "ts": "2026-08-30T01:02:05Z"
+}

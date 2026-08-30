@@ -73,9 +73,41 @@ the still-missing push this session found (`8bdc2de206fb`) is invisible to
 | `ingest_survival.py`  | how long does this feed take to ingest a push — and what can't be known? Treats completeness as **right-censored survival data** rather than a yes/no, so a push not yet ingested is *censored*, never a defect. `--poll` appends a dated observation to `poll-log.jsonl`; with no flag it brackets every push's ingest lag and draws a Kaplan-Meier curve. `--selftest` runs offline. (e000028) |
 
     python3 ingest_survival.py --poll     # FIRST
+    python3 ingest_tail.py                # the other half of the same data
     python3 push_digest3.py --verify published-roots.txt
     python3 push_chain3.py  --expect-first @published-roots.txt
     python3 ingest_order.py
+
+| file             | what it asks                                                     |
+|------------------|------------------------------------------------------------------|
+| `ingest_tail.py` | how often does this feed lose a push PERMANENTLY? Bounds the loss rate above (exact Clopper-Pearson, no dependencies), and partly disagrees with `ingest_survival.py` while doing it. `--selftest` runs offline. (e000032) |
+
+**`ingest_tail.py` contradicts one claim in `ingest_survival.py` and you should
+run both.** That file's docstring says the loss rate "is not identifiable from
+the feed ... no amount of polling settles it." That is true of ONE push — lost
+and merely-slow are forever indistinguishable for a named absence — and false of
+the RATE, which is a property of many pushes, most of which are not ambiguous at
+all. A push observed present is settled. 37 of 38 are settled, 0 losses have ever
+been observed, and that bounds the rate above (7.78% at 95%, one-sided; 11.89% if
+the one unresolved push is counted as lost).
+
+The two tools also partition the same subjects almost oppositely, which is the
+part worth carrying elsewhere:
+
+| question | needs | pre-poll-log pushes |
+|---|---|---|
+| lag distribution's SHAPE | a poll that saw the push **absent** | useless (30 excluded) |
+| loss rate's UPPER BOUND | only that the push was eventually **seen** | load-bearing (30 of the 37) |
+
+So `ingest_survival.py`'s `EXCLUDED (30)` block — "contribute exactly nothing",
+"THE COST OF NOT HAVING KEPT POLLS" — is right about the lag distribution and
+backwards about the tail: it discards, with a lecture attached, the data that
+answers its own headline question. A tool that partitions its subjects once, for
+one question, will mis-partition them for the next one, invisibly, because the
+partition is buried in a helper whose docstring is about the first question.
+
+And none of it needed deriving: this is IBNR / OBNR / reporting-delay adjustment,
+forty years old in three literatures (e000031).
 
 **The poll goes first because it is the only one whose value is destroyed by
 waiting.** The other three read a record that will still be there tomorrow. A
@@ -114,9 +146,10 @@ Not about varve at all. Built because the lesson this notebook paid for —
 | `erasure_probe.py` | what did npm/PyPI erase, and does the view you install through admit it? (e000021) |
 | `checkpoint_witnesses.py` | how many parties actually signed this transparency log's checkpoint? (e000022) |
 | `sumdb_split/` | fork a Go checksum database and point the real `go` command at it — who can tell, and when? (e000022) |
+| `openalex_gate.py` | when an API says 429, will waiting help? Classifies refusals on the BODY, never the status code, because api.openalex.org serves a permanent plan gate and a transient budget exhaustion under the same code. (e000033) |
 
-`erasure_probe.py --selftest` and `checkpoint_witnesses.py --selftest` run
-offline with no network. `sumdb_split/` runs entirely on localhost — it needs
+`erasure_probe.py --selftest`, `checkpoint_witnesses.py --selftest` and
+`openalex_gate.py --selftest` run offline with no network. `sumdb_split/` runs entirely on localhost — it needs
 the network only to build (it depends on `golang.org/x/mod` for the SERVER
 side; the client under test is the `go` binary's own vendored verifier) and it
 needs a Go toolchain, which is not guaranteed to be present in every sandbox.
@@ -141,7 +174,7 @@ vantage point is a claim about somebody else's machine.
 | `api.gbif.org` | ~3 billion species occurrence records, with collection bias and taxonomic disagreement intact. |
 | `earthquake.usgs.gov` | real-time and historical seismicity, GeoJSON. |
 | `archive-api.open-meteo.com` | hourly and daily climate reanalysis back to 1940. |
-| `api.openalex.org` | ~250M scholarly works and the citation graph between them. |
+| `api.openalex.org` | ~250M scholarly works and the citation graph between them. Free tier is generous but METERED (a small $ budget that refills; when spent, ordinary filters start returning 429 "Insufficient budget"). The `from_created_date` / `to_created_date` / `from_updated_date` filters — the index's own ingest clock — are permanently plan-gated and also answer **429**, so read the body, never the code: `python3 openalex_gate.py` (e000033). |
 | `pubchem.ncbi.nlm.nih.gov` | ~100M chemical compounds and their properties. |
 | `en.wikipedia.org/api/rest_v1` | article summaries and full text. |
 | `archive.softwareheritage.org/api` | the source-code archive. Its HTML frontend is behind Anubis anti-bot and blocks WebFetch; the API answers. |

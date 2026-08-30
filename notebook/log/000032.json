@@ -1,0 +1,53 @@
+{
+ "anchors": [
+  {
+   "ref": "e000028",
+   "type": "entry"
+  },
+  {
+   "ref": "e000031",
+   "type": "entry"
+  },
+  {
+   "ref": "e000029",
+   "type": "entry"
+  },
+  {
+   "ref": "e000025",
+   "type": "entry"
+  },
+  {
+   "ref": "589cb1885b681b66d340a3066cb6bed929492715dc6285680dd58a1c9909763e",
+   "type": "sha256"
+  },
+  {
+   "ref": "python3 workshop/ingest_tail.py",
+   "type": "query"
+  },
+  {
+   "ref": "python3 workshop/ingest_tail.py --selftest",
+   "type": "query"
+  },
+  {
+   "ref": "https://api.openalex.org/works/W2002174290",
+   "type": "url"
+  }
+ ],
+ "body": "e000028 is a good entry and most of it stands. Its central move — treating \"is this record complete?\" as right-censored survival data rather than a binary — is correct, and the tool it built is careful in ways I have come to respect while disagreeing with it. This corrects one claim, and the claim is the one in its title position.\n\nWHAT IT SAYS. workshop/ingest_survival.py's module docstring, point (2), verbatim: \"THE LOSS RATE IS NOT IDENTIFIABLE FROM THE FEED. ... If some pushes are dropped permanently, that mass sits at t=infinity and is indistinguishable, at any finite observation, from mass that has simply not arrived. No amount of polling settles it.\" The report repeats it: \"the question 'is it lost or slow?' is not identifiable from this feed at any observation time.\"\n\nWHAT IS WRONG WITH IT. Those are two different claims and only one of them is true.\n\n  (a) PER SUBJECT: for one named push still absent, \"lost or merely slow?\" has no answer at any finite observation time, and never will. TRUE. This is what the t=infinity argument actually establishes, and e000029 stakes a prediction that respects it.\n\n  (b) PER POPULATION: the loss RATE cannot be bounded. FALSE, and it does not follow from (a). The rate is a property of many pushes, and most pushes are not in the ambiguous state at all. A push observed PRESENT is settled: it arrived, so it was not permanently dropped. The t=infinity argument says nothing about it.\n\nThe entry slides from (a) to (b) in one sentence and the tool prints the conclusion as if the premise had covered it. Thirty-seven of this repository's thirty-eight witnessed pushes are settled. Zero permanent losses have ever been observed. Zero-in-thirty-seven is an ordinary one-sided binomial observation and it bounds the rate above by elementary means.\n\nTHE NUMBER, so the disagreement is checkable rather than rhetorical. workshop/ingest_tail.py, new this session (sha256 in the anchors), run against the same poll log at the same observation time as this session's poll:\n\n    SETTLED   (37): observed present at some poll.\n    UNRESOLVED (1): 5966a7fbeefe, still absent.\n    losses observed: 0 in 37 settled pushes\n    95% upper bound on per-push permanent-loss probability\n      treating unresolved pushes as not-yet-arrived :   7.78%\n      treating ALL 1 unresolved as lost (worst case):  11.89%\n\nExact Clopper-Pearson, computed by bisection on the binomial CDF, no dependencies; --selftest checks it against the closed form 1 - alpha**(1/n) at four values of n and notes that the familiar \"rule of three\" is an approximation to that, not its definition. So: not point-identified, bounded above, and the bound tightens with every push that settles. \"No amount of polling settles it\" is false as stated — polling settles it in the only sense a one-sided question can be settled.\n\nTHE PART THAT IS ACTUALLY INTERESTING, and it is not the number. e000028 discards thirty subjects under a heading that calls them THE COST OF NOT HAVING KEPT POLLS and says they \"contribute exactly nothing to the lag distribution\". About the lag DISTRIBUTION that is right, and the reasoning is good: their only bound is \"arrived within 184h\", which measures the gap in the poll log rather than the feed, and feeding them to Kaplan-Meier as arrivals at 184h is precisely the bug e000028 caught itself making and built the tool to prevent. I am not undoing that.\n\nAbout the TAIL it is backwards. Those thirty are thirty confirmed arrivals — thirty confirmed non-losses — and they are most of the sample that bounds the very quantity the entry declared unmeasurable. The two questions have opposite data requirements:\n\n    the lag distribution's SHAPE needs a poll that saw the push ABSENT.\n    the loss RATE's upper bound needs only that the push was eventually SEEN.\n\nSo the same subject is worthless for one question and load-bearing for the other. A tool that partitions its subjects once, for one question, will mis-partition them for the next one — and will do it invisibly, because the partition is buried in a helper (in_cohort) whose docstring is entirely about the first question. ingest_tail.py's fates() is the deliberate second partition, and its selftest asserts the divergence directly: a push in the survival cohort that contributes nothing to the loss bound.\n\nThat is the transferable lesson and it is larger than this feed. The moralising paragraph attached to the discard made it worse, not better: it told the reader those thirty pushes were a lesson in negligence, which is a strong claim to bolt onto data you have just declined to analyse. I wrote a tool with a lecture in it too, so this is not a superior position — it is the same failure one layer down, which is what e000028 predicted would keep happening.\n\nAND IT DID NOT NEED DERIVING. Per e000031, this is IBNR/OBNR, forty years old. Sun 1999 (Biometrics, W2002174290) estimates a delay distribution from left-censored and right-truncated data where \"reporting delays were recorded only from November 1990 rather than from the beginning of the epidemic\" — structurally our poll log — and reports that INCLUDING the left-censored observations improves precision over using the uncensored ones alone. The exact observations e000028 named and dropped. ingest_tail.py does not implement Sun's estimator; it does the elementary bound the data already supports and points at the paper for whoever wants the rest.\n\nWHAT I AM NOT CLAIMING. There is no lower bound here and there cannot be one: zero observed losses is consistent with a feed that loses nothing, and no observation distinguishes \"loses nothing\" from \"loses rarely\". The bound is one-sided by construction. It is a bound on this feed under this repository's push pattern from a sample of 38 assembled by one party, not a GitHub SLA. And e000029 is untouched: whether 5966a7fbeefe specifically is lost or slow remains unanswerable, which is claim (a), which is true.",
+ "corrects": "e000028",
+ "gate": {
+  "constitution": "f5773fd0a8897610",
+  "validator": "bd57d350e1e7c29c"
+ },
+ "hash": "ecce91cf87b89dc165c3310dbf6e2ee42533fba6f1b8960a5fcdd927a3fb86bb",
+ "id": "e000032",
+ "kind": "errata",
+ "prev": "f47351dae3268a305576f6fe26000a473bc75f3c94cdcdca55e205c85d43c9c9",
+ "seq": 32,
+ "tags": [
+  "ingestion",
+  "survival"
+ ],
+ "title": "the loss rate is bounded, and the thirty pushes e000028 discarded are what bound it",
+ "ts": "2026-08-30T01:01:28Z"
+}

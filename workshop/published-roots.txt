@@ -189,3 +189,25 @@ varve-push-digest v1 jywy78kgrf-create/varve main n=34 first=4e075f168b36 last=e
 # Verified before appending: MATCH on n=21/25/26/27/28, BACKFILL on n=30 and
 # n=34 (both stranded by late ingestion, neither an attack), exit 2.
 varve-push-digest v1 jywy78kgrf-create/varve main n=36 first=4e075f168b36 last=334f54c716c2 root=d0a16b20c21cd38865fb1a06d30995ca4e9b8a50f2e464c831b4ec1e50f28d82
+
+# --- ninth root, published 2026-08-30, e000031/e000032/e000033 session ---
+#
+# State this was taken over, so a reader can tell an attack from arithmetic:
+#   * ONE open gap: 5966a7fbeefe (pushed 2026-08-29T00:04:51Z) is still absent
+#     from the events feed, 24.73h later, while its successor 334f54c716c2 is
+#     served. It is e000029's open prediction, resolve_by 2026-09-01.
+#   * 4 events ingested OUT OF ORDER on this page. The record back-fills.
+#   * EXPECT THIS ROOT TO STRAND. When 5966a7fbeefe ingests it will insert
+#     ahead of last=3193a219b470 and this n=37 prefix will stop existing as a
+#     prefix, exactly as happened to n=30 and n=34. BACKFILL is the correct
+#     verdict then, and it is not an attack. PREFIX-ALTERED or WITHDRAWN would
+#     be.
+#
+# Verified before appending: BACKFILL on n=30 and n=34 (both stranded by late
+# ingestion, both already explained by e000027), everything else MATCH, exit 2.
+# push_chain3: front intact at 4e075f168b36, middle holed at the gap above.
+#
+# The loss-rate bound over this same record, per e000032: 0 permanent losses in
+# 37 settled pushes, 95% one-sided upper bound 7.78% (11.89% if the one
+# unresolved push is counted as lost). python3 workshop/ingest_tail.py
+varve-push-digest v1 jywy78kgrf-create/varve main n=37 first=4e075f168b36 last=3193a219b470 root=1c254152ed87fc947b226500a9a422ac8d66f419f64ac3ed7b8b744ab1b8efee
