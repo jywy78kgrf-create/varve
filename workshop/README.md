@@ -189,6 +189,17 @@ Two more (`d68f1e047de7`, `a9133247599d`) were absent and uncounted. (e000036)
 | `ingest_activity.py` | what does GitHub's *other* endpoint say? `/repos/{repo}/activity` reports ref changes by type with GitHub's own push timestamp, so both of `ingest_frame.py`'s premises are retired. `--frame` gives the lag table with no proxy clock in it; `--selftest` runs offline. (e000038) |
 | `activity_poll.py`   | what did that endpoint hold, and when did somebody look? Appends one line to `activity-log.jsonl` and does no analysis at all. (e000038) |
 | `feed_watch.py`      | is the absence a *queue* or an *outage*? The only tool here that does **not** filter to `PushEvent` on `main`. Matches every `/activity` ref change against every feed event by `(type, ref, after)`, groups the absent ones into maximal runs bounded by arrivals, and reports non-monotone arrivals — a later change present while an earlier one is absent, which no delay distribution can produce. Records the feed's `ETag` and `Last-Modified`, the only fields that separate "stalled" from "cached". Appends to `feed-watch.jsonl`; `--report` reads the log; `--selftest` runs offline. (e000040, e000041, e000042) |
+| `ingest_clock.py`    | **how late was an event, if nobody was polling?** Tightens `ingest_order.py`'s signal from a flag into a number: the running maximum of `created_at` over all *lower* ids is a proven lower bound on when an event was ingested, so `bound − created_at` is a lower bound on its lag, retroactive, from one GET. For `7a294ccd00b7`, `ingest_order.py` pairs a witness seven minutes later (0.11 h); this pins 14.98 h from the same data. Also contrasts the two counters — `/activity` ids sort with its own timestamps (0 inversions), `/events` ids do not (5) — which is what *demonstrates* the ingest-stamping that `ingest_order.py` assumes. `--selftest` cross-checks its bounds against every poll bracket in `feed-watch.jsonl`. (e000044, and read **e000046** first) |
+
+> **`ingest_clock.py`'s docstring is partly retracted — see e000046.** It claims
+> the `id` field is one "no tool in this workshop reads". That is false:
+> `ingest_order.py` reads it, e000024 reported it on 2026-08-24, and the very
+> lag figures the tool presents as recoveries (13.14 h, 14.95 h) have been in
+> the chain since e000027. What survives is the *tightening* and the counter
+> contrast, both noted in the table above. The file is frozen by an `sha256`
+> anchor in e000044, so per e000039 it is not edited — build the corrected
+> successor beside it. Anyone reaching for a new ingest tool should read
+> `ingest_order.py` and e000024 **before** e000044.
 
 Two subjects the feed-framed tool could not see move `S(7.75)` by **4.26
 points**; the thirty argued about above move it by 0.60. Upper bounds are tail
@@ -203,8 +214,10 @@ changes, not two independent draws. Turnbull and Kaplan-Meier both assume
 censoring is independent across subjects; entering a run as if it were a sample
 adds confidence rather than information. Entering the run as four subjects
 versus one moves `S(7.75)` by up to **7.67 points** — more than the finding the
-4.26 was written to report. Which is right turns on e000042, which resolves
-2026-09-03 on whether the six come back together or one at a time.
+4.26 was written to report. Which is right turns on e000042 — which resolved
+**FALSE** on 2026-08-31 (e000043), and whose reasoning was then itself
+corrected by e000045: the "drain" delivered two of the six and stopped, and
+102 minutes later the other four had still not arrived.
 
 **`ingest_frame.py` has a known bug and is left unpatched on purpose.** It
 classifies a commit as `below-floor` by comparing its date to the feed's oldest
