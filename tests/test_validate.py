@@ -268,3 +268,17 @@ def test_display_bending_characters_are_refused(log):
     ok = store.append(log, {"kind": "hunch", "title": "tabs\tand\nnewlines are fine",
                             "body": "so is é and 中文"})
     assert "\t" in ok["title"]
+
+
+def test_pointer_fields_must_be_strings(log):
+    """A pointer is used as a dict key or set member by every view, so a
+    non-string there is a TypeError in the reader rather than a rejection — and
+    it took out the gate itself first, escaping as an unhandled exception past
+    worker.py, which catches only ValueError. Found by the second notebook's
+    fifth review (QQ1eF e000024, 2026-08-30)."""
+    for field in ("corrects", "resolves", "discharges", "answers"):
+        for bad in ([], {}, 5, None, ["e000001"]):
+            with pytest.raises(ValueError, match="entry id string"):
+                store.append(log, {"kind": "errata", "title": "t", "body": "b",
+                                   field: bad,
+                                   "anchors": [{"type": "entry", "ref": "e000001"}]})

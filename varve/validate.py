@@ -152,6 +152,22 @@ def check(entry, existing, root=None):
 
     ids = {e["id"] for e in existing}
 
+    # Pointer fields are type-checked BEFORE anything reaches into them. Every
+    # view uses a pointer as a dict key or a set member — corrections() does
+    # setdefault(e["corrects"]), beliefs() indexes by e["resolves"] — so an
+    # unhashable value there is a TypeError in the reader, not a rejection. The
+    # gate itself was the first casualty: `corrects: []` raised
+    # "unhashable type: 'list'" out of check(), and worker.py catches only
+    # ValueError, so a model-authored entry could kill the run rather than come
+    # back as feedback. Found by the second notebook's fifth review (QQ1eF
+    # e000024, 2026-08-30); the same hole was live here and one step worse.
+    for field in ("corrects", "resolves", "discharges", "answers"):
+        if field in entry and not isinstance(entry[field], str):
+            problems.append("%r must be an entry id string like e000123, not %s"
+                            % (field, type(entry[field]).__name__))
+    if problems:
+        return problems
+
     anchors = entry.get("anchors") or []
     if not isinstance(anchors, list):
         problems.append("anchors must be a list")
