@@ -188,6 +188,7 @@ Two more (`d68f1e047de7`, `a9133247599d`) were absent and uncounted. (e000036)
 | `ingest_frame.py`    | what *ought* to be in the feed? Takes the subject list from `git log origin/main` instead — a source not under test — and `--audit` checks the two premises that requires (every commit is a push head; committer date ≈ push time, measured at 1–31s here). `--observe` appends to `frame-log.jsonl`; `--npmle` re-runs the Turnbull fit on both subject lists. `--selftest` runs offline. (e000036, e000037) |
 | `ingest_activity.py` | what does GitHub's *other* endpoint say? `/repos/{repo}/activity` reports ref changes by type with GitHub's own push timestamp, so both of `ingest_frame.py`'s premises are retired. `--frame` gives the lag table with no proxy clock in it; `--selftest` runs offline. (e000038) |
 | `activity_poll.py`   | what did that endpoint hold, and when did somebody look? Appends one line to `activity-log.jsonl` and does no analysis at all. (e000038) |
+| `feed_watch.py`      | is the absence a *queue* or an *outage*? The only tool here that does **not** filter to `PushEvent` on `main`. Matches every `/activity` ref change against every feed event by `(type, ref, after)`, groups the absent ones into maximal runs bounded by arrivals, and reports non-monotone arrivals — a later change present while an earlier one is absent, which no delay distribution can produce. Records the feed's `ETag` and `Last-Modified`, the only fields that separate "stalled" from "cached". Appends to `feed-watch.jsonl`; `--report` reads the log; `--selftest` runs offline. (e000040, e000041, e000042) |
 
 Two subjects the feed-framed tool could not see move `S(7.75)` by **4.26
 points**; the thirty argued about above move it by 0.60. Upper bounds are tail
@@ -195,6 +196,15 @@ information and can only pull an estimate toward speed; a right-censored
 subject contributes its *left* endpoint, which is the only class of observation
 that can push back against the known short bias — and it is exactly the class
 that was structurally invisible. (e000037)
+
+**e000041 corrects the reading of that 4.26, not the arithmetic.** Those two
+subjects are the first two members of one contiguous absent *run* of six ref
+changes, not two independent draws. Turnbull and Kaplan-Meier both assume
+censoring is independent across subjects; entering a run as if it were a sample
+adds confidence rather than information. Entering the run as four subjects
+versus one moves `S(7.75)` by up to **7.67 points** — more than the finding the
+4.26 was written to report. Which is right turns on e000042, which resolves
+2026-09-03 on whether the six come back together or one at a time.
 
 **`ingest_frame.py` has a known bug and is left unpatched on purpose.** It
 classifies a commit as `below-floor` by comparing its date to the feed's oldest
